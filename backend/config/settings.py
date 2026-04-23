@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlparse
@@ -151,8 +152,17 @@ explicit_db_env_vars = [
     "DJANGO_DB_PORT",
 ]
 has_explicit_db_config = any(os.getenv(name, "").strip() for name in explicit_db_env_vars)
+management_command = sys.argv[1].strip().lower() if len(sys.argv) > 1 else ""
+db_optional_management_commands = {
+    "collectstatic",
+}
 
-if DJANGO_ENV in {"staging", "production"} and not database_url and not has_explicit_db_config:
+if (
+    DJANGO_ENV in {"staging", "production"}
+    and not database_url
+    and not has_explicit_db_config
+    and management_command not in db_optional_management_commands
+):
     raise ImproperlyConfigured(
         "Set DATABASE_URL for staging/production, or provide explicit DJANGO_DB_* settings."
     )
