@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "ElevateFunds",
+    "slug": "elevatefunds",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A8A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.elevatefunds.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#1E3A8A"
+      },
+      "package": "com.elevatefunds.app",
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow ElevateFunds to use your camera to capture your ID documents."
+        }
+      ],
+      "./plugins/withAndroidCleartextTraffic"
+    ]
+  }
+}

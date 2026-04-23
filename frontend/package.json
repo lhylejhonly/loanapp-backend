@@ -1,0 +1,40 @@
+{
+  "name": "loan-management-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./scripts/start-expo.js",
+    "android": "node ./scripts/start-expo.js --android",
+    "ios": "node ./scripts/start-expo.js --ios",
+    "start:raw": "expo start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-navigation/bottom-tabs": "^6.5.11",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.17",
+    "axios": "^1.6.5",
+    "expo": "~54.0.0",
+    "expo-document-picker": "~14.0.8",
+    "expo-image-picker": "~17.0.10",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-secure-store": "~15.0.8",
+    "express": "^5.2.1",
+    "lucide-react-native": "^0.575.0",
+    "nodemailer": "^8.0.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
+    "react-native-vector-icons": "^10.3.0",
+    "react-native-web": "^0.21.0",
+    "resend": "^6.9.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~19.1.10",
+    "typescript": "^5.3.0"
+  }
+}
