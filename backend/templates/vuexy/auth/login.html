@@ -1,0 +1,35 @@
+{% extends "vuexy/base.html" %}
+
+{% block title %}Sign In | Loan App{% endblock %}
+{% block body_class %}vx-auth{% endblock %}
+
+{% block content %}
+  <div class="vx-auth-wrap">
+    <div class="vx-auth-panel">
+      <p class="vx-eyebrow">Vuexy-Style Backend</p>
+      <h1>{{ page_title|default:"Loan App Control Center" }}</h1>
+      <p class="vx-muted">Use your admin or officer credentials to access the backend panel.</p>
+
+      <form method="post" class="vx-form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="vx-form-error">{{ form.non_field_errors|join:", " }}</div>
+        {% endif %}
+
+        <label for="{{ form.username.id_for_label }}">Username</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="vx-field-error">{{ form.username.errors|join:", " }}</div>
+        {% endif %}
+
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <div class="vx-field-error">{{ form.password.errors|join:", " }}</div>
+        {% endif %}
+
+        <button class="vx-button" type="submit">Sign In</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

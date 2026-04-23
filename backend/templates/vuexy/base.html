@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Loan App{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'vuexy/css/theme.css' %}">
+</head>
+<body class="vx-body {% block body_class %}{% endblock %}">
+  {% if show_shell is not False and request.user.is_authenticated %}
+    <div class="vx-shell">
+      <aside class="vx-sidebar">
+        <a href="{% url 'dashboard-home' %}" class="vx-brand">
+          <span class="vx-brand-logo">LA</span>
+          <span>Loan App</span>
+        </a>
+
+        <nav class="vx-nav">
+          <a href="{% url 'dashboard-home' %}" class="vx-nav-link">Dashboard</a>
+          <a href="{% url 'admin:index' %}" class="vx-nav-link">Django Admin</a>
+          <a href="{% url 'api-docs' %}" class="vx-nav-link">API Docs</a>
+        </nav>
+
+        <div class="vx-sidebar-footer">
+          <div class="vx-muted">Signed in as</div>
+          <div class="vx-user-name">{{ request.user.name }}</div>
+          <div class="vx-user-role">{{ request.user.role|title }}</div>
+        </div>
+      </aside>
+
+      <main class="vx-main">
+        <header class="vx-topbar">
+          <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+          <form method="post" action="{% url 'dashboard-logout' %}">
+            {% csrf_token %}
+            <button class="vx-button vx-button-light" type="submit">Logout</button>
+          </form>
+        </header>
+
+        {% if messages %}
+          <section class="vx-messages">
+            {% for message in messages %}
+              <article class="vx-message">{{ message }}</article>
+            {% endfor %}
+          </section>
+        {% endif %}
+  {% endif %}
+
+  {% block content %}{% endblock %}
+
+  {% if show_shell is not False and request.user.is_authenticated %}
+      </main>
+    </div>
+  {% endif %}
+
+  <script src="{% static 'vuexy/js/theme.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

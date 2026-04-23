@@ -1,0 +1,75 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static log %}
+
+{% block content %}
+  <section class="admin-hero">
+    <div>
+      <h1>Operational Dashboard</h1>
+      <p>Manage customer lifecycle, approvals, collections, and portfolio operations.</p>
+    </div>
+    <div class="hero-links">
+      <a class="hero-link" href="{% url 'admin:loans_user_changelist' %}">User Management</a>
+      <a class="hero-link" href="{% url 'admin:loans_loan_changelist' %}">Loan Management</a>
+      <a class="hero-link" href="/api/docs/">API Docs</a>
+      <a class="hero-link" href="{% url 'admin:loans_payment_changelist' %}">Payment Records</a>
+    </div>
+  </section>
+
+  <section class="kpi-grid">
+    <article class="kpi-card">
+      <p>Total Users</p>
+      <h2>{{ metrics.total_users }}</h2>
+      <span>{{ metrics.borrowers }} borrowers, {{ metrics.officers }} officers</span>
+    </article>
+    <article class="kpi-card">
+      <p>Applications</p>
+      <h2>{{ metrics.applications }}</h2>
+      <span>{{ metrics.pending_loans }} pending, {{ metrics.approved_loans }} approved</span>
+    </article>
+    <article class="kpi-card">
+      <p>Total Disbursed</p>
+      <h2>{{ metrics.total_disbursed }}</h2>
+      <span>Approved loan principal</span>
+    </article>
+    <article class="kpi-card">
+      <p>Total Collected</p>
+      <h2>{{ metrics.total_collected }}</h2>
+      <span>Payments recorded</span>
+    </article>
+  </section>
+
+  <section class="admin-grid">
+    <div class="admin-main">
+      {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    </div>
+
+    <aside class="admin-side">
+      <div class="module">
+        <h2>{% translate "Recent actions" %}</h2>
+        <h3>{% translate "My actions" %}</h3>
+        {% get_admin_log 8 as admin_log for_user user %}
+        {% if not admin_log %}
+          <p>{% translate "None available" %}</p>
+        {% else %}
+          <ul class="actionlist">
+            {% for entry in admin_log %}
+              <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %} changelink{% endif %}{% if entry.is_deletion %} deletelink{% endif %}">
+                {% if entry.is_deletion or not entry.get_admin_url %}
+                  {{ entry.object_repr }}
+                {% else %}
+                  <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                {% endif %}
+                <br>
+                {% if entry.content_type %}
+                  <span class="mini quiet">{{ entry.content_type.name|capfirst }}</span>
+                {% else %}
+                  <span class="mini quiet">{% translate "Unknown content" %}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    </aside>
+  </section>
+{% endblock %}

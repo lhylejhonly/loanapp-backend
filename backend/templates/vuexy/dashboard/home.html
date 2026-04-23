@@ -1,0 +1,79 @@
+{% extends "vuexy/base.html" %}
+
+{% block title %}Dashboard | Loan App{% endblock %}
+{% block page_title %}{{ dashboard_title }}{% endblock %}
+
+{% block content %}
+  <section class="vx-kpis">
+    {% for item in kpis %}
+      <article class="vx-card">
+        <p class="vx-muted">{{ item.label }}</p>
+        <h3>{{ item.value }}</h3>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section class="vx-grid-2">
+    <article class="vx-card">
+      <h2>Recent Loan Activity</h2>
+      <div class="vx-table-wrap">
+        <table class="vx-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Borrower</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for loan in recent_loans %}
+              <tr>
+                <td>#{{ loan.id }}</td>
+                <td>{{ loan.borrower_name }}</td>
+                <td>{{ loan.loan_type.name }}</td>
+                <td><span class="vx-badge vx-{{ loan.status }}">{{ loan.status|title }}</span></td>
+                <td>PHP {{ loan.amount }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="vx-muted">No loans available yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="vx-card">
+      <h2>Recent Payments</h2>
+      <div class="vx-table-wrap">
+        <table class="vx-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Borrower</th>
+              <th>Amount</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in recent_payments %}
+              <tr>
+                <td>#{{ payment.id }}</td>
+                <td>{{ payment.borrower.name }}</td>
+                <td>PHP {{ payment.amount }}</td>
+                <td>{{ payment.date }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="vx-muted">No payments available yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+{% endblock %}
