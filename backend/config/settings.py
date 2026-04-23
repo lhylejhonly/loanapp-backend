@@ -143,6 +143,19 @@ def database_config_from_url(database_url: str) -> dict[str, object]:
 
 
 database_url = os.getenv("DATABASE_URL", "").strip()
+explicit_db_env_vars = [
+    "DJANGO_DB_NAME",
+    "DJANGO_DB_USER",
+    "DJANGO_DB_PASSWORD",
+    "DJANGO_DB_HOST",
+    "DJANGO_DB_PORT",
+]
+has_explicit_db_config = any(os.getenv(name, "").strip() for name in explicit_db_env_vars)
+
+if DJANGO_ENV in {"staging", "production"} and not database_url and not has_explicit_db_config:
+    raise ImproperlyConfigured(
+        "Set DATABASE_URL for staging/production, or provide explicit DJANGO_DB_* settings."
+    )
 
 DATABASES = {
     "default": (
