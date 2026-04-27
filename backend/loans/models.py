@@ -378,6 +378,40 @@ class PaymentSubmission(models.Model):
         return f"Payment submission #{self.pk} - {self.amount}"
 
 
+class ContactMessage(models.Model):
+    class Status(models.TextChoices):
+        UNREAD = "unread", "Unread"
+        READ = "read", "Read"
+        REPLIED = "replied", "Replied"
+
+    sender = models.ForeignKey(
+        User,
+        related_name="sent_messages",
+        on_delete=models.CASCADE,
+        limit_choices_to={"role": User.Role.BORROWER},
+    )
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.UNREAD)
+    reply = models.TextField(blank=True, default="")
+    replied_by = models.ForeignKey(
+        User,
+        related_name="replied_messages",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={"role__in": [User.Role.OFFICER, User.Role.ADMIN]},
+    )
+    replied_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.sender.email} - {self.subject}"
+
+
 class BorrowerAccountRequest(models.Model):
     class RequestType(models.TextChoices):
         DATA_EXPORT = "data_export", "Data Export"

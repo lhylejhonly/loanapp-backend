@@ -4,7 +4,8 @@ import math
 import secrets
 
 from django.conf import settings
-from django.db import transaction
+from django.db import connection, transaction
+from django.db.migrations.executor import MigrationExecutor
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -18,6 +19,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     BorrowerAccountRequest,
     BorrowerDocument,
+    ContactMessage,
     Loan,
     LoanType,
     Notification,
@@ -36,6 +38,8 @@ from .serializers import (
     BorrowerDocumentSerializer,
     BorrowerPaymentSubmissionCreateSerializer,
     ChangePasswordSerializer,
+    ContactMessageReplySerializer,
+    ContactMessageSerializer,
     CurrentUserUpdateSerializer,
     CustomTokenObtainPairSerializer,
     LoanCreateSerializer,
@@ -530,10 +534,52 @@ class HealthCheckView(APIView):
     authentication_classes = []
 
     def get(self, request):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+
+            executor = MigrationExecutor(connection)
+            pending_migrations = executor.migration_plan(executor.loader.graph.leaf_nodes())
+            user_table_exists = User._meta.db_table in connection.introspection.table_names()
+        except Exception as exc:
+            response_data = {
+                "status": "error",
+                "service": "loan-app-backend",
+                "database": "unavailable",
+                "timestamp": timezone.now(),
+            }
+            if settings.DEBUG:
+                response_data["detail"] = str(exc)
+
+            return Response(
+                response_data,
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if pending_migrations or not user_table_exists:
+            response_data = {
+                "status": "error",
+                "service": "loan-app-backend",
+                "database": "ok",
+                "schema": "not_ready",
+                "timestamp": timezone.now(),
+            }
+            if settings.DEBUG:
+                response_data["user_table_exists"] = user_table_exists
+                response_data["pending_migrations"] = len(pending_migrations)
+
+            return Response(
+                response_data,
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
         return Response(
             {
                 "status": "ok",
                 "service": "loan-app-backend",
+                "database": "ok",
+                "schema": "ok",
                 "timestamp": timezone.now(),
             }
         )
@@ -1288,6 +1334,71 @@ class AdminUserDetailView(generics.RetrieveUpdateAPIView):
                 "Your account access has been updated by an administrator.",
                 Notification.Type.SYSTEM,
             )
+
+
+class BorrowerContactMessageListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsBorrower]
+    serializer_class = ContactMessageSerializer
+
+    def get_queryset(self):
+        return ContactMessage.objects.filter(sender=self.request.user)
+
+    def perform_create(self, serializer):
+        message = serializer.save(sender=self.request.user)
+        for staff in User.objects.filter(role__in=[User.Role.OFFICER, User.Role.ADMIN], is_active=True):
+            create_notification(
+                staff,
+                "New Message from Borrower",
+                f"{message.sender.name} sent a message: {message.subject}",
+                Notification.Type.SYSTEM,
+            )
+
+
+class StaffContactMessageListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ContactMessageSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role not in [User.Role.OFFICER, User.Role.ADMIN]:
+            return ContactMessage.objects.none()
+        queryset = ContactMessage.objects.select_related("sender", "replied_by")
+        status_filter = self.request.query_params.get("status")
+        if status_filter in {ContactMessage.Status.UNREAD, ContactMessage.Status.READ, ContactMessage.Status.REPLIED}:
+            queryset = queryset.filter(status=status_filter)
+        return queryset
+
+
+class StaffContactMessageReplyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if request.user.role not in [User.Role.OFFICER, User.Role.ADMIN]:
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        message = get_object_or_404(ContactMessage, pk=pk)
+        serializer = ContactMessageReplySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        message.reply = serializer.validated_data["reply"]
+        message.status = ContactMessage.Status.REPLIED
+        message.replied_by = request.user
+        message.replied_at = timezone.now()
+        message.save(update_fields=["reply", "status", "replied_by", "replied_at"])
+        create_notification(
+            message.sender,
+            "Message Reply",
+            f"Your message '{message.subject}' has been replied to.",
+            Notification.Type.SYSTEM,
+        )
+        return Response(ContactMessageSerializer(message).data)
+
+    def patch(self, request, pk):
+        if request.user.role not in [User.Role.OFFICER, User.Role.ADMIN]:
+            return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+        message = get_object_or_404(ContactMessage, pk=pk)
+        if message.status == ContactMessage.Status.UNREAD:
+            message.status = ContactMessage.Status.READ
+            message.save(update_fields=["status"])
+        return Response(ContactMessageSerializer(message).data)
 
 
 class AdminLoanTypeListCreateView(generics.ListCreateAPIView):

@@ -13,6 +13,7 @@ from unittest.mock import patch
 from loans.models import (
     BorrowerAccountRequest,
     BorrowerDocument,
+    ContactMessage,
     Loan,
     LoanType,
     Notification,
@@ -544,6 +545,67 @@ class BorrowerSelfServiceTests(APITestCase):
             ).count(),
             1,
         )
+
+
+class ContactMessageTests(APITestCase):
+    def setUp(self):
+        self.borrower = User.objects.create_user(
+            username="contactborrower",
+            email="contact.borrower@example.com",
+            password="Secure@123",
+            name="Contact Borrower",
+            role=User.Role.BORROWER,
+            is_active=True,
+            email_verified=True,
+        )
+        self.officer = User.objects.create_user(
+            username="contactofficer",
+            email="contact.officer@example.com",
+            password="Secure@123",
+            name="Contact Officer",
+            role=User.Role.OFFICER,
+            is_active=True,
+            email_verified=True,
+        )
+
+    def test_borrower_can_send_contact_message(self):
+        self.client.force_authenticate(user=self.borrower)
+
+        response = self.client.post(
+            reverse("borrower-messages"),
+            {
+                "subject": "Need help with verification",
+                "message": "I want to confirm which ID I should upload.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        created_message = ContactMessage.objects.get(sender=self.borrower)
+        self.assertEqual(created_message.subject, "Need help with verification")
+        self.assertEqual(created_message.status, ContactMessage.Status.UNREAD)
+        self.assertTrue(
+            Notification.objects.filter(
+                user=self.officer,
+                title="New Message from Borrower",
+                notification_type=Notification.Type.SYSTEM,
+            ).exists()
+        )
+
+    def test_staff_cannot_send_borrower_contact_message(self):
+        self.client.force_authenticate(user=self.officer)
+
+        response = self.client.post(
+            reverse("borrower-messages"),
+            {
+                "subject": "Internal note",
+                "message": "This should not be accepted here.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(ContactMessage.objects.filter(sender=self.officer).exists())
 
 
 class MeEndpointTests(APITestCase):

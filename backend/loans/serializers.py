@@ -12,6 +12,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     BorrowerAccountRequest,
     BorrowerDocument,
+    ContactMessage,
     Loan,
     LoanType,
     Notification,
@@ -1432,6 +1433,34 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
         return user
+
+
+class ContactMessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source="sender.name", read_only=True)
+    sender_email = serializers.CharField(source="sender.email", read_only=True)
+    replied_by_name = serializers.CharField(source="replied_by.name", read_only=True, allow_null=True)
+
+    class Meta:
+        model = ContactMessage
+        fields = [
+            "id",
+            "sender",
+            "sender_name",
+            "sender_email",
+            "subject",
+            "message",
+            "status",
+            "reply",
+            "replied_by",
+            "replied_by_name",
+            "replied_at",
+            "created_at",
+        ]
+        read_only_fields = ["sender", "status", "reply", "replied_by", "replied_by_name", "replied_at", "created_at"]
+
+
+class ContactMessageReplySerializer(serializers.Serializer):
+    reply = serializers.CharField(min_length=1, max_length=2000)
 
 
 class BorrowerAccountRequestSerializer(serializers.ModelSerializer):
