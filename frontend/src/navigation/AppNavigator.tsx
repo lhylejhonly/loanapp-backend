@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Platform, Pressable, Text, View, StyleSheet, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, Text, View, StyleSheet, useWindowDimensions } from 'react-native';
 import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BottomTabBarButtonProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -9,6 +9,7 @@ import {
   FileText,
   House,
   LayoutDashboard,
+  MessageCircle,
   PieChart,
   ReceiptText,
   Settings,
@@ -34,6 +35,7 @@ import { AdminUsersScreen } from '../screens/AdminUsersScreen';
 import { AdminLoansScreen } from '../screens/AdminLoansScreen';
 import { AdminLoanTypesScreen } from '../screens/AdminLoanTypesScreen';
 import { AdminReportsScreen } from '../screens/AdminReportsScreen';
+import { AdminMessagesScreen } from '../screens/AdminMessagesScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { PostLoginSplashScreen } from '../screens/PostLoginSplashScreen';
 import { BorrowerHistoryScreen } from '../screens/BorrowerHistoryScreen';
@@ -308,25 +310,35 @@ const getAdminTabOptions = ({
 const renderTabIcon = (
   IconComponent: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
 ) => {
-  return ({ color, focused }: { color: string; focused: boolean }) => (
-    <View style={[styles.tabIconWrap, focused ? styles.tabIconWrapActive : undefined]}>
-      <IconComponent size={18} color={focused ? '#FFFFFF' : color} strokeWidth={2.3} />
-    </View>
-  );
+  function TabIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+      <View style={[styles.tabIconWrap, focused ? styles.tabIconWrapActive : undefined]}>
+        <IconComponent size={18} color={focused ? '#FFFFFF' : color} strokeWidth={2.3} />
+      </View>
+    );
+  }
+
+  TabIcon.displayName = `TabIcon(${IconComponent.displayName ?? IconComponent.name ?? 'Icon'})`;
+  return TabIcon;
 };
 
 const renderBorrowerTabIcon = (
   IconComponent: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
 ) => {
-  return ({ color, focused }: { color: string; focused: boolean }) => (
-    <View style={styles.borrowerTabIconWrap}>
-      <IconComponent
-        size={focused ? 19 : 18}
-        color={focused ? colors.primary : color}
-        strokeWidth={focused ? 2.5 : 2.2}
-      />
-    </View>
-  );
+  function BorrowerTabIcon({ color, focused }: { color: string; focused: boolean }) {
+    return (
+      <View style={styles.borrowerTabIconWrap}>
+        <IconComponent
+          size={focused ? 19 : 18}
+          color={focused ? colors.primary : color}
+          strokeWidth={focused ? 2.5 : 2.2}
+        />
+      </View>
+    );
+  }
+
+  BorrowerTabIcon.displayName = `BorrowerTabIcon(${IconComponent.displayName ?? IconComponent.name ?? 'Icon'})`;
+  return BorrowerTabIcon;
 };
 
 const BorrowerCenterTabButton = ({
@@ -536,6 +548,13 @@ const OfficerTabs = ({
       }}
     />
     <Tab.Screen
+      name="Messages"
+      component={AdminMessagesScreen}
+      options={{
+        tabBarIcon: renderTabIcon(MessageCircle),
+      }}
+    />
+    <Tab.Screen
       name="Settings"
       component={SettingsScreen}
       options={{
@@ -615,6 +634,14 @@ const AdminTabs = ({
       }}
     />
     <Tab.Screen
+      name="Messages"
+      component={AdminMessagesScreen}
+      options={{
+        tabBarLabel: 'MSGS',
+        tabBarIcon: renderTabIcon(MessageCircle),
+      }}
+    />
+    <Tab.Screen
       name="Settings"
       component={SettingsScreen}
       options={{
@@ -650,9 +677,10 @@ export const AppNavigator = () => {
 
   if (authLoading) {
     return (
-      <View style={styles.loadingWrap}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <PostLoginSplashScreen
+        subtitle="Securing your session"
+        loadingLabel="Loading your account"
+      />
     );
   }
 
@@ -681,11 +709,6 @@ export const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-  loadingWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   tabIconWrap: {
     width: 38,
     height: 38,

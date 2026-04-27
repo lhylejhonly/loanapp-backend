@@ -1,10 +1,20 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from '../components/LinearGradient';
 import { colors, spacing } from '../../constants/theme';
 
-export const PostLoginSplashScreen = () => {
+const brandLogo = require('../../assets/images/logo-transparent.png');
+
+type PostLoginSplashScreenProps = {
+  subtitle?: string;
+  loadingLabel?: string;
+};
+
+export const PostLoginSplashScreen = ({
+  subtitle = 'Please wait a moment',
+  loadingLabel = 'Preparing your dashboard',
+}: PostLoginSplashScreenProps) => {
   const { width } = useWindowDimensions();
   const compact = width < 380;
 
@@ -16,15 +26,22 @@ export const PostLoginSplashScreen = () => {
 
         <View style={styles.content}>
           <View style={[styles.brandBlock, compact ? styles.brandBlockCompact : undefined]}>
+            <View style={styles.logoHalo}>
+              <Image
+                source={brandLogo}
+                style={[styles.logo, compact ? styles.logoCompact : undefined]}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={[styles.brand, compact ? styles.brandCompact : undefined]}>ElevateFunds</Text>
-            <Text style={styles.subtitle}>Please wait a moment</Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
           </View>
 
           <View style={styles.loaderWrap}>
             <View style={styles.loaderRing}>
               <ActivityIndicator color="#FFFFFF" size="large" />
             </View>
-            <Text style={styles.loadingLabel}>Preparing your dashboard</Text>
+            <Text style={styles.loadingLabel}>{loadingLabel}</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -49,12 +66,29 @@ const styles = StyleSheet.create({
   brandBlock: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 64,
-    minHeight: 220,
+    marginBottom: 48,
+    minHeight: 250,
   },
   brandBlockCompact: {
-    minHeight: 180,
-    marginBottom: 48,
+    minHeight: 220,
+    marginBottom: 40,
+  },
+  logoHalo: {
+    width: 260,
+    height: 164,
+    borderRadius: 82,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  logo: {
+    width: 222,
+    height: 122,
+  },
+  logoCompact: {
+    width: 196,
+    height: 108,
   },
   brand: {
     color: '#FFFFFF',
@@ -76,7 +110,7 @@ const styles = StyleSheet.create({
   loaderWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: 14,
   },
   loaderRing: {
     width: 72,

@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -19,11 +21,15 @@ import {
   MapPin,
   MessageCircle,
   Phone,
+  Send,
   ShieldCheck,
 } from 'lucide-react-native';
 import { Card } from '../components/Card';
 import { LinearGradient } from '../components/LinearGradient';
 import { colors, radii, spacing } from '../../constants/theme';
+import { ApiError } from '../api/client';
+import { sendContactMessage } from '../api/contact';
+import { useAuth } from '../context/AuthContext';
 
 const SUPPORT = {
   email: 'support@elevatefunds.com',
@@ -47,8 +53,79 @@ const openExternalUrl = async (url: string, failureMessage: string) => {
   }
 };
 
+const buildSupportEmailUrl = (subject: string, message: string) =>
+  `mailto:${SUPPORT.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+
+const shouldOfferEmailFallback = (error: unknown) =>
+  error instanceof ApiError && (error.status === 0 || error.status === 404 || error.status === 405 || error.status >= 500);
+
+const useSafeBottomTabBarHeight = () => {
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useBottomTabBarHeight();
+  } catch {
+    return 0;
+  }
+};
+
 export const SupportScreen = ({ navigation }: any) => {
-  const tabBarHeight = useBottomTabBarHeight();
+  const { user, authLoading } = useAuth();
+  const tabBarHeight = useSafeBottomTabBarHeight();
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const isBorrower = user?.role === 'borrower';
+  const canOpenMessageInbox = user?.role === 'officer' || user?.role === 'admin';
+
+  const handleSend = async () => {
+    const trimmedSubject = subject.trim();
+    const trimmedMessage = message.trim();
+
+    if (!trimmedSubject || !trimmedMessage) {
+      Alert.alert('Required', 'Please fill in both subject and message.');
+      return;
+    }
+
+    setSending(true);
+    try {
+      await sendContactMessage(trimmedSubject, trimmedMessage);
+      setSubject('');
+      setMessage('');
+      Alert.alert('Sent', 'Your message has been sent. We will get back to you soon.');
+    } catch (err: unknown) {
+      if (shouldOfferEmailFallback(err)) {
+        Alert.alert(
+          'Support service unavailable',
+          'The in-app message service is unavailable right now. You can still send the same message using your email app.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Email',
+              onPress: () =>
+                void openExternalUrl(
+                  buildSupportEmailUrl(trimmedSubject, trimmedMessage),
+                  'Unable to open the email app right now.'
+                ),
+            },
+          ]
+        );
+        return;
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send message. Please try again.';
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -65,7 +142,9 @@ export const SupportScreen = ({ navigation }: any) => {
 
       <Text style={styles.title}>Support Center</Text>
       <Text style={styles.subtitle}>
-        Get help with borrower verification, documents, loan applications, payments, and account privacy.
+        {isBorrower
+          ? 'Get help with borrower verification, documents, loan applications, payments, and account privacy.'
+          : 'View support contact details and manage borrower inquiries from the staff message inbox.'}
       </Text>
 
       <LinearGradient
@@ -144,6 +223,64 @@ export const SupportScreen = ({ navigation }: any) => {
         <Text style={styles.sectionListItem}>SMS/Viber: {SUPPORT.mobile}</Text>
         <Text style={styles.sectionListItem}>Office: {SUPPORT.office}</Text>
       </Card>
+
+      {isBorrower ? (
+        <Card style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Send size={18} color={colors.primary} strokeWidth={2.3} />
+            <Text style={styles.sectionTitle}>Send us a message</Text>
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Subject"
+            placeholderTextColor={colors.textMuted}
+            value={subject}
+            onChangeText={setSubject}
+            maxLength={200}
+          />
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Your message or feedback..."
+            placeholderTextColor={colors.textMuted}
+            value={message}
+            onChangeText={setMessage}
+            multiline
+            numberOfLines={5}
+            maxLength={2000}
+            textAlignVertical="top"
+          />
+          <TouchableOpacity
+            style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+            onPress={() => void handleSend()}
+            disabled={sending}
+            activeOpacity={0.85}
+          >
+            <Send size={16} color="#FFFFFF" strokeWidth={2.4} />
+            <Text style={styles.sendButtonText}>{sending ? 'Sending...' : 'Send Message'}</Text>
+          </TouchableOpacity>
+        </Card>
+      ) : (
+        <Card style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <MessageCircle size={18} color={colors.primary} strokeWidth={2.3} />
+            <Text style={styles.sectionTitle}>Borrower message inbox</Text>
+          </View>
+          <Text style={styles.sectionBody}>
+            In-app support messages are reserved for borrower accounts. Staff users should review and reply from the
+            Messages tab instead of sending a new support request here.
+          </Text>
+          {canOpenMessageInbox ? (
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => navigation.navigate('Messages')}
+              activeOpacity={0.85}
+            >
+              <MessageCircle size={16} color={colors.primary} strokeWidth={2.4} />
+              <Text style={styles.secondaryButtonText}>Open Messages Inbox</Text>
+            </TouchableOpacity>
+          ) : null}
+        </Card>
+      )}
 
       <Card style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
@@ -299,5 +436,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     color: colors.textLight,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  textArea: {
+    minHeight: 100,
+    paddingTop: spacing.sm,
+  },
+  sendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm + 2,
+  },
+  loadingWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  sendButtonDisabled: {
+    opacity: 0.6,
+  },
+  sendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm + 2,
+  },
+  secondaryButtonText: {
+    color: colors.primaryDeep,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
