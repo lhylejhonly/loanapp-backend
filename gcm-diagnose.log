@@ -1,0 +1,194 @@
+﻿Diagnose log at 2026-04-27T11:11:16Z
+
+AppPath: C:\Program Files\Git\mingw64\bin\git-credential-manager.exe
+InstallDir: C:\Program Files\Git\mingw64\bin\
+Version: 2.6.0+3c28096588f549cb46f36b552390514356830abe
+
+------------
+Diagnostic: Environment
+Skipped: False
+Success: True
+Exception: None
+Log:
+OSType: Windows
+OSVersion: 10.0 (build 26200)
+Reading environment variables... OK
+ Variables:
+HOMEPATH=\Users\lylep
+GIT_PAGER=more.com
+COMPUTERNAME=INVALID
+DriverData=C:\Windows\System32\Drivers\DriverData
+GIT_TRACE2_PARENT_SID=95cce4a6-d38f-43fd-be97-4cb91e935531
+CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+OneDrive=C:\Users\lylep\OneDrive
+CODEX_THREAD_ID=019dce56-a006-7233-b9cb-fef9273ae871
+VSCODE_HANDLES_UNCAUGHT_ERRORS=true
+GIT_CONFIG_KEY_0=safe.directory
+TMP=C:\Users\lylep\AppData\Local\Temp
+LC_CTYPE=C.UTF-8
+USERDOMAIN=INVALID
+PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW;.CPL
+VSCODE_IPC_HOOK=\\.\pipe\fc348d66-1.117.0-main-sock
+SystemDrive=C:
+GIT_EXEC_PATH=C:/Program Files/Git/mingw64/libexec/git-core
+TEMP=C:\Users\lylep\AppData\Local\Temp
+LOCALAPPDATA=C:\Users\lylep\AppData\Local
+MSYSTEM=MINGW64
+TERM=xterm-256color
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 140 Stepping 1, GenuineIntel
+PSModulePath=C:\Users\lylep\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules
+ProgramData=C:\ProgramData
+windir=C:\WINDOWS
+LESS=
+PROCESSOR_REVISION=8c01
+GIT_CONFIG_VALUE_0=C:\Users\lylep\Desktop\LOAN APP
+PROCESSOR_LEVEL=6
+NUMBER_OF_PROCESSORS=8
+TMPDIR=C:\Users\lylep\AppData\Local\Temp
+PROMPT=$P$G
+GIT_CONFIG_COUNT=1
+ProgramFiles(x86)=C:\Program Files (x86)
+PUBLIC=C:\Users\Public
+VSCODE_NLS_CONFIG={"userLocale":"en-us","osLocale":"en-ph","resolvedLanguage":"en","defaultMessagesFile":"C:\\Users\\lylep\\AppData\\Local\\Programs\\Microsoft VS Code\\10c8e557c8\\resources\\app\\out\\nls.messages.json","locale":"en-us","availableLanguages":{}}
+CommonProgramFiles=C:\Program Files (x86)\Common Files
+VSCODE_ESM_ENTRYPOINT=vs/workbench/api/node/extensionHostProcess
+CHROME_CRASHPAD_PIPE_NAME=\\.\pipe\crashpad_3656_QOTWVBWBRPAMYXRE
+CODEX_SANDBOX_NETWORK_DISABLED=1
+PLINK_PROTOCOL=ssh
+COLORTERM=truecolor
+ProgramFiles=C:\Program Files (x86)
+PATH=C:/Program Files/Git/mingw64/libexec/git-core;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\lylep\bin;C:\Users\lylep\.codex\tmp\arg0\codex-arg0s03epb;C:\Users\lylep\AppData\Local\Programs\Microsoft VS Code;C:\Python312\Scripts\;C:\Python312\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\xampp\php;C:\ProgramData\ComposerSetup\bin;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs\;C:\Program Files (x86)\cloudflared\;C:\Users\lylep\AppData\Local\Microsoft\WindowsApps;C:\Users\lylep\AppData\Roaming\Composer\vendor\bin;C:\Users\lylep\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\lylep\AppData\Roaming\npm;c:\Users\lylep\.vscode\extensions\openai.chatgpt-26.318.11754-win32-x64\bin\windows-x86_64
+ChocolateyInstall=C:\ProgramData\chocolatey
+GLOG_logbufsecs=0
+DEBUG=release
+VSCODE_CODE_CACHE_PATH=C:\Users\lylep\AppData\Roaming\Code\CachedData\10c8e557c8b9f9ed0a87f61f1c9a44bde731c409
+ProgramW6432=C:\Program Files
+HOME=C:\Users\lylep
+CODEX_INTERNAL_ORIGINATOR_OVERRIDE=codex_vscode
+CommonProgramW6432=C:\Program Files\Common Files
+ZES_ENABLE_SYSMAN=1
+LOGONSERVER=\\INVALID
+VSCODE_CWD=C:\WINDOWS\system32
+USERPROFILE=C:\Users\lylep
+SystemRoot=C:\WINDOWS
+USERDOMAIN_ROAMINGPROFILE=INVALID
+APPDATA=C:\Users\lylep\AppData\Roaming
+HOMEDRIVE=C:
+RUST_LOG=warn
+VSCODE_PID=3656
+OPENSSL_CONF=C:\Program Files\PostgreSQL\psqlODBC\etc\openssl.cnf
+ELECTRON_RUN_AS_NODE=1
+USERNAME=lylep
+PROCESSOR_ARCHITEW6432=AMD64
+PROCESSOR_ARCHITECTURE=x86
+OS=Windows_NT
+ComSpec=C:\WINDOWS\system32\cmd.exe
+ChocolateyLastPathUpdate=133752830526067219
+PAGER=more.com
+VSCODE_CRASH_REPORTER_PROCESS_TYPE=extensionHost
+OneDriveConsumer=C:\Users\lylep\OneDrive
+ALLUSERSPROFILE=C:\ProgramData
+
+
+------------
+Diagnostic: File system
+Skipped: False
+Success: True
+Exception: None
+Log:
+Temporary directory is 'C:\Users\lylep\AppData\Local\Temp\'...
+Checking basic file I/O...
+Writing to temporary file 'C:\Users\lylep\AppData\Local\Temp\f66244828304d831080a63b3'... OK
+Reading from temporary file 'C:\Users\lylep\AppData\Local\Temp\f66244828304d831080a63b3'... OK
+Deleting temporary file 'C:\Users\lylep\AppData\Local\Temp\f66244828304d831080a63b3'... OK
+Testing IFileSystem instance...
+UserHomePath: C:\Users\CodexSandboxOffline
+UserDataDirectoryPath: C:\Users\CodexSandboxOffline\.gcm
+GetCurrentDirectory(): C:\Users\CodexSandboxOffline\.codex\.sandbox\cwd\6d9eacb419d125ec
+
+------------
+Diagnostic: Networking
+Skipped: False
+Success: False
+Exception:
+System.Net.Http.HttpRequestException: An error occurred while sending the request. ---> System.Net.WebException: Unable to connect to the remote server ---> System.Net.Sockets.SocketException: An attempt was made to access a socket in a way forbidden by its access permissions 172.66.147.243:443
+   at System.Net.Sockets.Socket.InternalEndConnect(IAsyncResult asyncResult)
+   at System.Net.Sockets.Socket.EndConnect(IAsyncResult asyncResult)
+   at System.Net.ServicePoint.ConnectSocketInternal(Boolean connectFailure, Socket s4, Socket s6, Socket& socket, IPAddress& address, ConnectSocketState state, IAsyncResult asyncResult, Exception& exception)
+   --- End of inner exception stack trace ---
+   at System.Net.HttpWebRequest.EndGetResponse(IAsyncResult asyncResult)
+   at System.Net.Http.HttpClientHandler.GetResponseCallback(IAsyncResult ar)
+   --- End of inner exception stack trace ---
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter`1.GetResult()
+   at GitCredentialManager.Diagnostics.NetworkingDiagnostic.<RunInternalAsync>d__4.MoveNext()
+--- End of stack trace from previous location where exception was thrown ---
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter`1.GetResult()
+   at GitCredentialManager.Diagnostics.Diagnostic.<RunAsync>d__6.MoveNext()
+Log:
+Checking networking and HTTP stack...
+Creating HTTP client... OK
+IsNetworkAvailable: True
+Sending HEAD request to http://example.com...Sending HEAD request to https://example.com... warning: HEAD request failed
+Sending HEAD request to http://httpforever.com...
+------------
+Diagnostic: Git
+Skipped: False
+Success: True
+Exception: None
+Log:
+Getting Git version... OK
+Git version is '2.47.0.windows.2'
+Locating current repository...Git repository at 'C:/Users/lylep/Desktop/LOAN APP/.git'
+ OK
+Listing all Git configuration... OK
+Git configuration:
+file:C:/Program Files/Git/etc/gitconfig	diff.astextplain.textconv=astextplain
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.clean=git-lfs clean -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.smudge=git-lfs smudge -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.process=git-lfs filter-process
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.required=true
+file:C:/Program Files/Git/etc/gitconfig	http.sslbackend=openssl
+file:C:/Program Files/Git/etc/gitconfig	http.sslcainfo=C:/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt
+file:C:/Program Files/Git/etc/gitconfig	core.autocrlf=true
+file:C:/Program Files/Git/etc/gitconfig	core.fscache=true
+file:C:/Program Files/Git/etc/gitconfig	core.symlinks=false
+file:C:/Program Files/Git/etc/gitconfig	pull.rebase=false
+file:C:/Program Files/Git/etc/gitconfig	credential.helper=manager
+file:C:/Program Files/Git/etc/gitconfig	credential.https://dev.azure.com.usehttppath=true
+file:C:/Program Files/Git/etc/gitconfig	init.defaultbranch=master
+file:C:/Users/lylep/.gitconfig	user.email=lylepelayo@gmail.com
+file:C:/Users/lylep/.gitconfig	user.name=lyle pelayo
+file:C:/Users/lylep/.gitconfig	filter.lfs.clean=git-lfs clean -- %f
+file:C:/Users/lylep/.gitconfig	filter.lfs.smudge=git-lfs smudge -- %f
+file:C:/Users/lylep/.gitconfig	filter.lfs.process=git-lfs filter-process
+file:C:/Users/lylep/.gitconfig	filter.lfs.required=true
+file:C:/Users/lylep/.gitconfig	core.autocrlf=false
+file:.git/config	core.repositoryformatversion=0
+file:.git/config	core.filemode=false
+file:.git/config	core.bare=false
+file:.git/config	core.logallrefupdates=true
+file:.git/config	core.symlinks=false
+file:.git/config	core.ignorecase=true
+file:.git/config	remote.origin.url=https://github.com/lhylejhonly/loanapp-backend.git
+file:.git/config	remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
+file:.git/config	credential.https://github.com.username=lhylejhonly
+file:.git/config	branch.main.remote=origin
+file:.git/config	branch.main.merge=refs/heads/main
+command line:	safe.directory=C:\Users\lylep\Desktop\LOAN APP
+
+
+------------
+Diagnostic: Credential storage
+Skipped: False
+Success: True
+Exception: None
+Log:
+ICredentialStore instance is of type: CredentialStore
+Writing test credential... OK
+Reading test credential... OK
+Deleting test credential... OK
+
