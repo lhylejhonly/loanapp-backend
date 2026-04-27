@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Animated,
   Appearance,
-  ColorSchemeName,
   Image,
   ScrollView,
   StyleSheet,
@@ -255,7 +253,7 @@ export const SettingsScreen = ({ navigation, route }: any) => {
   const [documents, setDocuments] = useState<BorrowerDocument[]>([]);
   const [documentsError, setDocumentsError] = useState('');
   const [language, setLanguage] = useState('English');
-  const [colorScheme, setColorScheme] = useState<ColorSchemeName>(Appearance.getColorScheme());
+  const colorScheme = Appearance.getColorScheme();
   const [photoSaving, setPhotoSaving] = useState(false);
   const [contactSaving, setContactSaving] = useState(false);
   const [verificationSaving, setVerificationSaving] = useState(false);
@@ -382,6 +380,23 @@ export const SettingsScreen = ({ navigation, route }: any) => {
   const debtToIncomeRatio = null;
 
   const readinessScore = useMemo(() => (isBorrower ? 100 : 0), [isBorrower]);
+  void [
+    hasGovId,
+    hasStudentId,
+    hasBusinessPermit,
+    hasIncomeProof,
+    hasAnyId,
+    hasAnyIncomeOrRevenue,
+    hasStrictGovernmentId,
+    hasStrictIncomeOrRevenue,
+    hasSupportingDocument,
+    supportingDocumentLabel,
+    governmentIdHint,
+    supportingDocumentHint,
+    verificationStatus,
+    debtToIncomeRatio,
+    readinessScore,
+  ];
   const latestGovernmentIdDocument = useMemo(
     () => getLatestDocumentByTypes(myDocuments, [DocTypes.GOVERNMENT_ID, DocTypes.ID]),
     [myDocuments]
@@ -1238,7 +1253,7 @@ export const SettingsScreen = ({ navigation, route }: any) => {
                   <>
                     <Text style={vStyles.resultEmoji}>🎉</Text>
                     <View style={vStyles.resultText}>
-                      <Text style={vStyles.resultTitle}>You\'re eligible for a loan!</Text>
+                      <Text style={vStyles.resultTitle}>You&apos;re eligible for a loan!</Text>
                       <Text style={vStyles.resultSub}>Head to Home and tap Apply to get started.</Text>
                     </View>
                   </>

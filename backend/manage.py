@@ -15,6 +15,12 @@ LOCAL_DB_COMMANDS = {
     "test",
 }
 
+AUTO_MIGRATE_COMMANDS = {
+    "runserver",
+    "createsuperuser",
+    "seed_demo",
+}
+
 
 def _read_env_file(env_path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
@@ -91,9 +97,47 @@ def _maybe_start_local_postgres() -> None:
         print(result.stdout.strip())
 
 
+def _maybe_apply_local_migrations() -> None:
+    command = sys.argv[1] if len(sys.argv) > 1 else ""
+    if command not in AUTO_MIGRATE_COMMANDS or os.name != "nt":
+        return
+    if any(flag in sys.argv for flag in {"--help", "-h"}):
+        return
+    if os.getenv("DJANGO_SKIP_AUTO_MIGRATE") == "1":
+        return
+
+    base_dir = Path(__file__).resolve().parent
+    host, _port = _db_target(base_dir)
+    if host not in {"127.0.0.1", "localhost", "::1"}:
+        return
+
+    env = os.environ.copy()
+    env["DJANGO_SKIP_AUTO_MIGRATE"] = "1"
+
+    result = subprocess.run(
+        [sys.executable, "manage.py", "migrate", "--noinput"],
+        cwd=base_dir,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        check=False,
+    )
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout).strip()
+        raise RuntimeError(
+            "Unable to apply database migrations automatically before starting Django. "
+            f"{details or 'Run python manage.py migrate manually.'}"
+        )
+
+    if result.stdout.strip():
+        print(result.stdout.strip())
+
+
 def main():
     """Run administrative tasks."""
     _maybe_start_local_postgres()
+    _maybe_apply_local_migrations()
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     try:
         from django.core.management import execute_from_command_line

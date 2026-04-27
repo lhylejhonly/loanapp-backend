@@ -27,6 +27,7 @@ const SESSION_REFRESH_TOKEN_KEY = 'session_refresh_token';
 const SESSION_USER_ID_KEY = 'session_user_id';
 const HEALTH_ENDPOINT = '/health/';
 const DEFAULT_REQUEST_TIMEOUT_MS = 15000;
+const CONFIGURED_API_REQUEST_TIMEOUT_MS = 60000;
 const AUTO_DETECTION_TIMEOUT_MS = 5000;
 
 type ApiRequestOptions = Omit<AxiosRequestConfig, 'baseURL' | 'url' | 'data'> & {
@@ -37,7 +38,9 @@ type ApiRequestOptions = Omit<AxiosRequestConfig, 'baseURL' | 'url' | 'data'> & 
 };
 
 const api = axios.create({
-  timeout: DEFAULT_REQUEST_TIMEOUT_MS,
+  timeout: hasConfiguredApiBaseUrl()
+    ? CONFIGURED_API_REQUEST_TIMEOUT_MS
+    : DEFAULT_REQUEST_TIMEOUT_MS,
   headers: {
     Accept: 'application/json',
   },
@@ -182,6 +185,12 @@ const isConnectionError = (error: unknown) => axios.isAxiosError(error) && !erro
 const isRetryableConnectionError = (error: unknown) =>
   (error instanceof ApiError && error.status === 0) || isConnectionError(error);
 
+const resolveRequestTimeoutMs = (overrideTimeout?: number) =>
+  overrideTimeout ??
+  (hasConfiguredApiBaseUrl()
+    ? CONFIGURED_API_REQUEST_TIMEOUT_MS
+    : DEFAULT_REQUEST_TIMEOUT_MS);
+
 const pingBaseUrl = async (baseUrl: string) => {
   try {
     await api.request({
@@ -288,7 +297,7 @@ const requestWithNativeFetch = async <T>(
   payload: FormData
 ): Promise<T> => {
   const controller = typeof AbortController === 'undefined' ? null : new AbortController();
-  const timeoutMs = config.timeout ?? DEFAULT_REQUEST_TIMEOUT_MS;
+  const timeoutMs = resolveRequestTimeoutMs(config.timeout);
   const timeoutHandle =
     controller && timeoutMs > 0
       ? setTimeout(() => controller.abort(), timeoutMs)
@@ -455,9 +464,9 @@ const runRequestAgainstBaseUrl = async <T>(
         baseURL: baseUrl,
         url: endpoint,
         data: payload,
-        headers,
-        timeout: config.timeout ?? DEFAULT_REQUEST_TIMEOUT_MS,
-      });
+      headers,
+      timeout: resolveRequestTimeoutMs(config.timeout),
+    });
 
   preferredApiBaseUrl = baseUrl;
   setApiReachable(true);
@@ -483,7 +492,7 @@ const refreshStoredSessionTokens = async (baseUrl: string): Promise<string | nul
         url: '/auth/refresh/',
         method: 'POST',
         data: { refresh: refreshToken },
-        timeout: DEFAULT_REQUEST_TIMEOUT_MS,
+        timeout: resolveRequestTimeoutMs(),
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',

@@ -3,11 +3,12 @@
     "name": "ElevateFunds",
     "slug": "elevatefunds",
     "version": "1.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#1E3A8A"
     },
@@ -17,12 +18,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/images/logo.png",
+        "monochromeImage": "./assets/images/logo.png",
         "backgroundColor": "#1E3A8A"
       },
       "package": "com.elevatefunds.app",
       "permissions": [
-        "INTERNET"
+        "android.permission.INTERNET",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -34,6 +37,12 @@
         }
       ],
       "./plugins/withAndroidCleartextTraffic"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c2697ff4-bf98-47dc-b6fa-c976e3eb410c"
+      }
+    },
+    "owner": "pelayo13"
   }
 }

@@ -13,11 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from '../components/LinearGradient';
 import { ArrowLeft, CheckCircle2, Clock3, FileX, ShieldAlert, Upload } from 'lucide-react-native';
 import { fetchBorrowerDocuments } from '../api/documents';
-import { useAuth } from '../context/AuthContext';
 import { BorrowerDocument } from '../../types';
 import {
   DocType,
-  DocTypes,
   DOC_DESCRIPTIONS,
   DOC_EMOJI,
   DOC_LABELS,
@@ -82,7 +80,6 @@ const getDocStatus = (doc: BorrowerDocument | undefined): DocStatus => {
 };
 
 export const DocumentCenterScreen = ({ navigation, route }: any) => {
-  const { user } = useAuth();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const [documents, setDocuments] = useState<BorrowerDocument[]>([]);

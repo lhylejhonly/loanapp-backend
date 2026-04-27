@@ -133,7 +133,7 @@ export const TermsScreen = ({ navigation, route }: any) => {
 
         <View style={styles.signatureBox}>
           <Text style={styles.signatureText}>
-            By tapping "I Agree & Accept" below, you electronically sign this agreement and confirm
+            By tapping &quot;I Agree & Accept&quot; below, you electronically sign this agreement and confirm
             all information provided is accurate and truthful.
           </Text>
         </View>

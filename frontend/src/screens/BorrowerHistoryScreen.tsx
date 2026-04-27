@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from '../components/LinearGradient';
 import {
   ArrowUpRight,
-  Clock3,
   CreditCard,
   ReceiptText,
   Wallet,
@@ -67,7 +66,7 @@ const sortPaymentsByDate = (a: Payment, b: Payment) =>
 const sortPaymentSubmissionsByDate = (a: PaymentSubmission, b: PaymentSubmission) =>
   new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
 
-const PAYMENT_METHOD_OPTIONS: Array<{ value: PaymentMethod; label: string }> = [
+const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: 'cash', label: 'Cash' },
   { value: 'gcash', label: 'GCash' },
   { value: 'maya', label: 'Maya' },

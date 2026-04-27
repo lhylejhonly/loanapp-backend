@@ -7,13 +7,15 @@
     "android": "node ./scripts/start-expo.js --android",
     "ios": "node ./scripts/start-expo.js --ios",
     "start:raw": "expo start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
     "axios": "^1.6.5",
+    "eslint-config-expo": "~10.0.0",
     "expo": "~54.0.0",
     "expo-document-picker": "~14.0.8",
     "expo-image-picker": "~17.0.10",
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "~19.1.10",
+    "eslint": "^9.39.4",
     "typescript": "^5.3.0"
   }
 }

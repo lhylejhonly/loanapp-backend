@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -34,6 +35,8 @@ const slides: Slide[] = [
   { id: 'onboarding-2', subtitle: 'Secure & Fast Processing\nTrusted by Thousands' },
   { id: 'onboarding-3', subtitle: 'Unlock Your Financial Freedom\nStart Your Journey Today', cta: true },
 ];
+
+const brandLogo = require('../../assets/images/android-icon-foreground.png');
 
 const MoneyIllustration = () => (
   <View style={styles.illustrationShell}>
@@ -121,9 +124,13 @@ export const LandingScreen = ({ navigation }: any) => {
     return (
       <LinearGradient colors={['#1E3A8A', '#2F56D4', '#4169E1']} style={styles.splash}>
         <SafeAreaView style={styles.splashInner}>
+          <View style={styles.splashGlowTop} />
+          <View style={styles.splashGlowBottom} />
           <View style={styles.splashContent}>
-            <View style={styles.splashIconRing}>
-              <CircleDollarSign size={72} color="#FFFFFF" strokeWidth={2.2} />
+            <View style={styles.splashLogoHalo}>
+              <View style={styles.splashLogoPlate}>
+                <Image source={brandLogo} style={styles.splashLogo} resizeMode="contain" />
+              </View>
             </View>
             <Text style={styles.splashBrand}>ElevateFunds</Text>
             <Text style={styles.splashTagline}>Your Financial Partner</Text>
@@ -209,19 +216,51 @@ export const LandingScreen = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   splash: { flex: 1 },
-  splashInner: { flex: 1 },
+  splashInner: { flex: 1, overflow: 'hidden' },
   splashContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  splashIconRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
+  splashGlowTop: {
+    position: 'absolute',
+    top: -90,
+    right: -30,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  splashGlowBottom: {
+    position: 'absolute',
+    bottom: -110,
+    left: -55,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(184,231,255,0.16)',
+  },
+  splashLogoHalo: {
+    width: 172,
+    height: 172,
+    borderRadius: 86,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
+  splashLogoPlate: {
+    width: 132,
+    height: 132,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0C1A2E',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    elevation: 10,
+  },
+  splashLogo: { width: 88, height: 88 },
   splashBrand: { color: '#FFFFFF', fontSize: 40, fontWeight: '900', letterSpacing: -0.5, marginBottom: 8 },
   splashTagline: { color: 'rgba(255,255,255,0.85)', fontSize: 16, fontWeight: '500' },
 

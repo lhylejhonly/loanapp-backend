@@ -196,3 +196,6 @@ Admin:
 Custom admin theme files:
 - templates: `templates/admin/`
 - styles: `static/admin/css/custom_admin.css`
+"# loanapp" 
+"# loanapp-backend" 
+"# loanapp-backend" 

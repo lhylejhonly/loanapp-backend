@@ -1,4 +1,5 @@
 {
+  "private": true,
   "dependencies": {
     "lucide-react-native": "^0.575.0"
   }

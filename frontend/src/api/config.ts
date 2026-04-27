@@ -2,6 +2,7 @@ import { NativeModules, Platform } from 'react-native';
 
 const DEFAULT_API_PORT = '8000';
 const DEFAULT_API_PATH = '/api';
+const DEFAULT_PRODUCTION_API_URL = 'https://loanapp-backend-q0la.onrender.com/api';
 const DEFAULT_NATIVE_HOST = '127.0.0.1';
 const DEFAULT_ANDROID_EMULATOR_HOST = '10.0.2.2';
 const AUTO_API_URL_VALUES = new Set(['auto', 'default']);
@@ -51,6 +52,32 @@ const normalizeApiPath = (value: string) => {
   }
 
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
+
+const normalizeConfiguredApiUrl = (value: string) => {
+  const sanitizedUrl = sanitizeBaseUrl(value);
+
+  try {
+    const url = new URL(sanitizedUrl);
+    if (!url.pathname || url.pathname === '/') {
+      url.pathname = normalizeApiPath(
+        process.env.EXPO_PUBLIC_API_PATH?.trim() || DEFAULT_API_PATH
+      );
+    }
+
+    return sanitizeBaseUrl(url.toString());
+  } catch {
+    return sanitizedUrl;
+  }
+};
+
+const isHostedBaseUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !isLoopbackHost(url.hostname);
+  } catch {
+    return /^https:\/\//i.test(value) && !isLoopbackHost(parseHost(value));
+  }
 };
 
 const inferHostFromWebLocation = () => {
@@ -135,7 +162,8 @@ const buildApiBaseUrl = (host: string) => {
 };
 
 const resolveConfiguredUrl = () => {
-  const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const configuredUrl =
+    process.env.EXPO_PUBLIC_API_URL?.trim() || DEFAULT_PRODUCTION_API_URL;
   if (!configuredUrl) {
     return null;
   }
@@ -149,7 +177,7 @@ const resolveConfiguredUrl = () => {
     return null;
   }
 
-  return sanitizedUrl;
+  return normalizeConfiguredApiUrl(sanitizedUrl);
 };
 
 const appendHost = (hosts: string[], host: string | null) => {
@@ -208,16 +236,19 @@ const pickHealthCheckUrl = (baseUrls: string[]) => {
 };
 
 export const getApiConnectionHelp = (baseUrls: string[] = []) => {
-  const hints = ['Make sure Django is running on 0.0.0.0:8000.'];
+  const usesHostedApi = baseUrls.some(isHostedBaseUrl);
+  const hints = usesHostedApi
+    ? ['The hosted backend may still be waking up.']
+    : ['Make sure Django is running on 0.0.0.0:8000.'];
   const healthCheckUrl = pickHealthCheckUrl(baseUrls);
 
   if (healthCheckUrl) {
     hints.push(
-      `Open ${healthCheckUrl} in the same device browser. If it does not load, the device cannot reach your computer yet.`
+      `Open ${healthCheckUrl} in the same device browser. If it does not load, the device cannot reach that backend host.`
     );
   }
 
-  if (Platform.OS === 'android') {
+  if (!usesHostedApi && Platform.OS === 'android') {
     if (isAndroidEmulator()) {
       hints.push('Android emulator auto mode uses 10.0.2.2 instead of the Expo LAN IP.');
     } else {
@@ -227,17 +258,21 @@ export const getApiConnectionHelp = (baseUrls: string[] = []) => {
     }
   }
 
-  if (Platform.OS === 'ios') {
+  if (!usesHostedApi && Platform.OS === 'ios') {
     hints.push(
       'On iPhone, the app must use your computer LAN IP and the same Wi-Fi or hotspot connection.'
     );
   }
 
-  if (Platform.OS !== 'web') {
+  if (!usesHostedApi && Platform.OS !== 'web') {
     hints.push(
-      'Leave EXPO_PUBLIC_API_URL unset or set it to auto for local development. You can still set a fixed LAN URL if needed.'
+      'Keep EXPO_PUBLIC_API_URL pointed at your hosted HTTPS API. Set it to auto only when you intentionally want to use a local backend.'
     );
     hints.push('Restart Expo after switching Wi-Fi or hotspot networks.');
+  }
+
+  if (baseUrls.some(isHostedBaseUrl)) {
+    hints.push('Hosted Render backends can take 30-60 seconds to wake after inactivity.');
   }
 
   hints.push('Use HTTPS in production, or allow cleartext HTTP only for local development builds.');

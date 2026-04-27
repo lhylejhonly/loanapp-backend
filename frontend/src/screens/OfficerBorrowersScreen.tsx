@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from '../components/LinearGradient';
-import { Eye, FileCheck2, FileX2, Users } from 'lucide-react-native';
+import { Eye, FileCheck2, Users } from 'lucide-react-native';
 import { Card } from '../components/Card';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { UserAvatar } from '../components/UserAvatar';

@@ -81,7 +81,6 @@ export const OfficerApplicationsScreen = () => {
   useFocusEffect(useCallback(() => { void loadApplications(); }, [loadApplications]));
 
   const pendingApplications = useMemo(() => applications.filter((l) => l.status === 'pending'), [applications]);
-  const reviewedApplications = useMemo(() => applications.filter((l) => l.status !== 'pending'), [applications]);
 
   const filteredApplications = useMemo(() => {
     if (activeFilter === 'all') return applications;

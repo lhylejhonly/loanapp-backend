@@ -1,9 +1,8 @@
 import os
-import sys
 from datetime import timedelta
 from pathlib import Path
-from urllib.parse import parse_qsl, unquote, urlparse
 
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -98,89 +97,48 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-DB_ENGINE = os.getenv("DJANGO_DB_ENGINE", "django.db.backends.postgresql").strip()
-POSTGRES_ENGINE = "django.db.backends.postgresql"
 
-if DB_ENGINE != POSTGRES_ENGINE:
-    raise ImproperlyConfigured(
-        "This project is PostgreSQL-only. Set DJANGO_DB_ENGINE=django.db.backends.postgresql."
-    )
+def build_database_config() -> dict[str, object]:
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if database_url:
+        return dj_database_url.parse(
+            database_url,
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
 
-default_user = "postgres"
-default_password = "postgres"
-default_host = "127.0.0.1"
-default_port = "5433"
-
-db_options = {
-    "connect_timeout": int(os.getenv("DJANGO_DB_CONNECT_TIMEOUT", "5")),
-}
-
-def database_config_from_url(database_url: str) -> dict[str, object]:
-    parsed = urlparse(database_url)
-    if parsed.scheme not in {"postgres", "postgresql"}:
-        raise ImproperlyConfigured("DATABASE_URL must use a postgres:// or postgresql:// scheme.")
-
-    db_name = parsed.path.lstrip("/")
+    db_name = os.getenv("DJANGO_DB_NAME", "").strip()
     if not db_name:
-        raise ImproperlyConfigured("DATABASE_URL must include a database name.")
+        raise ImproperlyConfigured(
+            "DATABASE_URL is not set. Define DATABASE_URL for hosted environments or "
+            "set DJANGO_DB_NAME, DJANGO_DB_USER, DJANGO_DB_PASSWORD, DJANGO_DB_HOST, "
+            "and DJANGO_DB_PORT for local development."
+        )
 
-    parsed_options = {
-        key: value
-        for key, value in parse_qsl(parsed.query, keep_blank_values=False)
+    db_config: dict[str, object] = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": db_name,
+        "USER": os.getenv("DJANGO_DB_USER", "").strip(),
+        "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", "").strip(),
+        "HOST": os.getenv("DJANGO_DB_HOST", "127.0.0.1").strip(),
+        "PORT": os.getenv("DJANGO_DB_PORT", "5432").strip(),
+        "CONN_MAX_AGE": 600,
     }
 
-    return {
-        "ENGINE": POSTGRES_ENGINE,
-        "NAME": unquote(db_name),
-        "USER": unquote(parsed.username or default_user),
-        "PASSWORD": unquote(parsed.password or default_password),
-        "HOST": parsed.hostname or default_host,
-        "PORT": str(parsed.port or default_port),
-        "OPTIONS": {
-            **db_options,
-            **parsed_options,
-        },
-    }
+    db_options: dict[str, object] = {}
+    db_connect_timeout = os.getenv("DJANGO_DB_CONNECT_TIMEOUT", "").strip()
+    if db_connect_timeout:
+        db_options["connect_timeout"] = int(db_connect_timeout)
+    if not DEBUG:
+        db_options["sslmode"] = "require"
+    if db_options:
+        db_config["OPTIONS"] = db_options
 
+    return db_config
 
-database_url = os.getenv("DATABASE_URL", "").strip()
-explicit_db_env_vars = [
-    "DJANGO_DB_NAME",
-    "DJANGO_DB_USER",
-    "DJANGO_DB_PASSWORD",
-    "DJANGO_DB_HOST",
-    "DJANGO_DB_PORT",
-]
-has_explicit_db_config = any(os.getenv(name, "").strip() for name in explicit_db_env_vars)
-management_command = sys.argv[1].strip().lower() if len(sys.argv) > 1 else ""
-db_optional_management_commands = {
-    "collectstatic",
-}
-
-if (
-    DJANGO_ENV in {"staging", "production"}
-    and not database_url
-    and not has_explicit_db_config
-    and management_command not in db_optional_management_commands
-):
-    raise ImproperlyConfigured(
-        "Set DATABASE_URL for staging/production, or provide explicit DJANGO_DB_* settings."
-    )
 
 DATABASES = {
-    "default": (
-        database_config_from_url(database_url)
-        if database_url
-        else {
-            "ENGINE": POSTGRES_ENGINE,
-            "NAME": os.getenv("DJANGO_DB_NAME", "loan_app").strip() or "loan_app",
-            "USER": os.getenv("DJANGO_DB_USER", default_user),
-            "PASSWORD": os.getenv("DJANGO_DB_PASSWORD", default_password),
-            "HOST": os.getenv("DJANGO_DB_HOST", default_host),
-            "PORT": os.getenv("DJANGO_DB_PORT", default_port),
-            "OPTIONS": db_options,
-        }
-    )
+    "default": build_database_config()
 }
 
 

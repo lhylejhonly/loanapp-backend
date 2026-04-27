@@ -21,8 +21,6 @@ const addMonths = (dateStr: string, months: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
-const today = new Date().toISOString().slice(0, 10);
-
 type ScheduleRow = {
   installment: number;
   dueDate: string;
@@ -73,9 +71,7 @@ export const RepaymentScheduleScreen = ({ navigation, route }: any) => {
   const schedule = useMemo(() => (loan ? buildSchedule(loan) : []), [loan]);
 
   const paidCount = schedule.filter((r) => r.status === 'paid').length;
-  const remainingCount = schedule.filter((r) => r.status !== 'paid').length;
   const totalPaid = paidCount * (schedule[0]?.total ?? 0);
-  const totalRemaining = remainingCount * (schedule[0]?.total ?? 0);
   const progressPct = schedule.length > 0 ? (paidCount / schedule.length) * 100 : 0;
 
   if (!loan) {

@@ -4,11 +4,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from '../components/LinearGradient';
-import { ClipboardList, FileText, LayoutDashboard, ReceiptText, TrendingUp, Users } from 'lucide-react-native';
+import { ClipboardList, FileText, ReceiptText, TrendingUp, Users } from 'lucide-react-native';
 import { Card } from '../components/Card';
 import { fetchAdminDashboard } from '../api/admin';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing, radii } from '../../constants/theme';
+import { colors, spacing } from '../../constants/theme';
 
 const formatCurrency = (amount: number) => `PHP ${amount.toLocaleString()}`;
 

@@ -26,7 +26,7 @@ import { colors, spacing } from '../../constants/theme';
 const formatCurrency = (value: number) =>
   `PHP ${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-const DOCUMENT_OPTIONS: Array<{ value: DocumentType; label: string }> = [
+const DOCUMENT_OPTIONS: { value: DocumentType; label: string }[] = [
   { value: 'id', label: 'Valid ID' },
   { value: 'income_proof', label: 'Proof of Income' },
   { value: 'government_id', label: 'Government ID' },

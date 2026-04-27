@@ -11,17 +11,23 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "auto"
+        "EXPO_PUBLIC_API_URL": "https://loanapp-backend-q0la.onrender.com/api"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://loanapp-backend-q0la.onrender.com/api"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://loanapp-backend-q0la.onrender.com/api"
+      }
     }
   },
   "submit": {

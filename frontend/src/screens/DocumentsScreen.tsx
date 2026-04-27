@@ -9,17 +9,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { applyForLoan, fetchLoanTypes } from '../api/loans';
 import { ApiError } from '../api/client';
 import { updateCurrentUser } from '../api/profile';
 import { useAuth } from '../context/AuthContext';
 import {
   DisbursementMethod,
-  DocumentType,
   LoanApplicationPurpose,
   LoanType,
 } from '../../types';
@@ -27,8 +25,6 @@ import {
   LOAN_AMOUNT_CAPS,
 } from '../../constants/docTypes';
 import { spacing } from '../../constants/theme';
-
-type UploadItem = { name: string; uri: string; mimeType?: string | null; file?: Blob };
 
 const palette = {
   background: '#F7F9FF',
@@ -47,9 +43,7 @@ const palette = {
   success: '#16A34A',
 };
 
-type DocKey = DocumentType;
-
-const DOC_CONFIG: Record<DocKey, { label: string; description: string; emoji: string }> = {
+const DOC_CONFIG: Record<string, { label: string; description: string; emoji: string }> = {
   government_id: {
     label: 'Government-Issued ID',
     description: 'Passport, Driver\'s License, SSS, PhilHealth, UMID, or Postal ID — must show your photo and full name',
@@ -87,6 +81,8 @@ const DOC_CONFIG: Record<DocKey, { label: string; description: string; emoji: st
   },
 };
 
+void DOC_CONFIG;
+
 const getLoanCategory = (name: string): 'student' | 'business' | 'general' => {
   const n = name.toLowerCase();
   if (n.includes('student') || n.includes('education') || n.includes('school')) return 'student';
@@ -96,14 +92,6 @@ const getLoanCategory = (name: string): 'student' | 'business' | 'general' => {
 
 const formatCurrency = (value: number) =>
   `PHP ${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-
-const inferMimeTypeFromName = (fileName?: string | null) => {
-  const normalizedFileName = fileName?.trim().toLowerCase() ?? '';
-  if (normalizedFileName.endsWith('.pdf')) return 'application/pdf';
-  if (normalizedFileName.endsWith('.png')) return 'image/png';
-  if (normalizedFileName.endsWith('.webp')) return 'image/webp';
-  return 'image/jpeg';
-};
 
 export const DocumentsScreen = ({ navigation, route }: any) => {
   const { user, applyAuthenticatedUserUpdate } = useAuth();
@@ -134,7 +122,6 @@ export const DocumentsScreen = ({ navigation, route }: any) => {
   const [accountNumber, setAccountNumber] = useState(user?.gcashAccountNumber ?? '');
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [uploads, setUploads] = useState<Partial<Record<DocKey, UploadItem>>>({});
   const [showErrors, setShowErrors] = useState(false);
   const [selectedLoanTypeId, setSelectedLoanTypeId] = useState(
     requestedLoanTypeId ?? preloadedLoanTypes[0]?.id ?? ''
@@ -258,38 +245,6 @@ export const DocumentsScreen = ({ navigation, route }: any) => {
     () => (selectedLoanType ? getLoanCategory(selectedLoanType.name) : 'general'),
     [selectedLoanType]
   );
-
-  const requiredDocKeys = useMemo((): DocKey[] => {
-    if (loanCategory === 'student') return ['government_id', 'student_id'];
-    if (loanCategory === 'business') return ['business_permit', 'business_owner_id', 'proof_of_revenue'];
-    if (selectedLoanType?.requiredDocuments?.length) {
-      return selectedLoanType.requiredDocuments as DocKey[];
-    }
-    return ['id', 'income_proof'];
-  }, [selectedLoanType, loanCategory]);
-
-  const selectDocumentUpload = async (key: DocKey) => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: '*/*',
-      copyToCacheDirectory: true,
-      multiple: false,
-    });
-
-    if (result.canceled || !result.assets?.[0]) return;
-
-    const asset = result.assets[0];
-    const mimeType = asset.mimeType ?? inferMimeTypeFromName(asset.name);
-    const fileName = asset.name ?? `${key}-${Date.now()}`;
-    setUploads((prev) => ({
-      ...prev,
-      [key]: {
-        name: fileName,
-        uri: asset.uri,
-        mimeType,
-        file: 'file' in asset ? asset.file ?? undefined : undefined,
-      },
-    }));
-  };
 
   const numericAmount = Number(amount.replace(/,/g, ''));
 
