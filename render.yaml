@@ -2,8 +2,9 @@ services:
   - type: web
     name: loan-app-backend
     runtime: python
-    buildCommand: cd backend && pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate --noinput
-    startCommand: cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate --noinput
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     healthCheckPath: /api/health/
     envVars:
       - key: DJANGO_ENV
@@ -25,7 +26,21 @@ services:
       - key: DJANGO_MEDIA_STORAGE
         value: filesystem
       - key: EMAIL_VERIFICATION_PROVIDER
-        value: console
+        value: brevo
+      - key: EMAIL_HOST
+        value: smtp-relay.brevo.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_HOST_USER
+        value: a915b0001@smtp-brevo.com
+      - key: EMAIL_HOST_PASSWORD
+        value: bskkFPfSTkJdH5t
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_USE_SSL
+        value: "False"
+      - key: DEFAULT_FROM_EMAIL
+        value: "loan app <lhylejhonly71@gmail.com>"
       - key: DISBURSEMENT_PROVIDER
         value: manual
 
