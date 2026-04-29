@@ -1,5 +1,6 @@
 from calendar import monthrange
 from datetime import date, timedelta
+import smtplib
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.test import SimpleTestCase, override_settings
@@ -676,6 +677,28 @@ class MeEndpointTests(APITestCase):
 
 class EmailVerificationProviderTests(SimpleTestCase):
     @override_settings(
+        EMAIL_VERIFICATION_PROVIDER="custom-smtp-name",
+        EMAIL_HOST="smtp-relay.brevo.com",
+        EMAIL_PORT=587,
+        EMAIL_HOST_USER="sender@example.com",
+        EMAIL_HOST_PASSWORD="smtp-key",
+        DEFAULT_FROM_EMAIL="sender@example.com",
+        EMAIL_USE_TLS=True,
+        EMAIL_USE_SSL=False,
+        EMAIL_TIMEOUT=15,
+        EMAIL_VERIFICATION_SUBJECT="Your verification code",
+    )
+    @patch("loans.email_verification.EmailMultiAlternatives.send", return_value=1)
+    def test_send_email_verification_code_with_custom_smtp_provider_name(self, mock_send):
+        send_email_verification_code(
+            recipient_email="borrower@example.com",
+            recipient_name="Borrower",
+            code="123456",
+        )
+
+        mock_send.assert_called_once_with(fail_silently=False)
+
+    @override_settings(
         EMAIL_VERIFICATION_PROVIDER="brevo",
         EMAIL_HOST="smtp-relay.brevo.com",
         EMAIL_PORT=587,
@@ -733,6 +756,32 @@ class EmailVerificationProviderTests(SimpleTestCase):
                 recipient_name="Borrower",
                 code="123456",
             )
+
+    @override_settings(
+        EMAIL_VERIFICATION_PROVIDER="brevo",
+        EMAIL_HOST="smtp-relay.brevo.com",
+        EMAIL_PORT=587,
+        EMAIL_HOST_USER="sender@example.com",
+        EMAIL_HOST_PASSWORD="smtp-key",
+        DEFAULT_FROM_EMAIL="sender@example.com",
+        EMAIL_USE_TLS=True,
+        EMAIL_USE_SSL=False,
+        EMAIL_TIMEOUT=15,
+        EMAIL_VERIFICATION_SUBJECT="Your verification code",
+    )
+    @patch(
+        "loans.email_verification.EmailMultiAlternatives.send",
+        side_effect=smtplib.SMTPSenderRefused(553, b"sender not allowed", "sender@example.com"),
+    )
+    def test_send_email_verification_code_surfaces_sender_rejection(self, _mock_send):
+        with self.assertRaises(EmailVerificationError) as exc:
+            send_email_verification_code(
+                recipient_email="borrower@example.com",
+                recipient_name="Borrower",
+                code="123456",
+            )
+
+        self.assertIn("DEFAULT_FROM_EMAIL", str(exc.exception))
 
 
 class AdminLoanDecisionTests(APITestCase):

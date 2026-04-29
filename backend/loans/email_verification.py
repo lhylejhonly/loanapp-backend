@@ -143,6 +143,61 @@ def _resolve_smtp_host() -> str:
     return ""
 
 
+def _decode_smtp_response(exc: BaseException) -> str:
+    response = getattr(exc, "smtp_error", "")
+    if isinstance(response, bytes):
+        response = response.decode("utf-8", errors="ignore")
+    if not isinstance(response, str):
+        response = str(response)
+    return response.strip()
+
+
+def _build_smtp_error_message(exc: BaseException) -> str:
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        return "Email provider rejected the SMTP login. Verify EMAIL_HOST_USER and EMAIL_HOST_PASSWORD."
+
+    if isinstance(exc, smtplib.SMTPSenderRefused):
+        provider_message = _decode_smtp_response(exc)
+        if provider_message:
+            return (
+                "Email provider rejected DEFAULT_FROM_EMAIL. "
+                f"Use a verified sender address. Provider message: {provider_message}"
+            )
+        return "Email provider rejected DEFAULT_FROM_EMAIL. Use a verified sender address."
+
+    if isinstance(exc, smtplib.SMTPRecipientsRefused):
+        return "Email provider rejected the recipient email address."
+
+    if isinstance(exc, smtplib.SMTPDataError):
+        provider_message = _decode_smtp_response(exc)
+        if provider_message:
+            return (
+                "Email provider rejected the message while sending it. "
+                f"Provider message: {provider_message}"
+            )
+        return "Email provider rejected the message while sending it."
+
+    if isinstance(exc, smtplib.SMTPResponseException):
+        provider_message = _decode_smtp_response(exc)
+        if provider_message:
+            return (
+                "Email provider returned an SMTP error while sending the message. "
+                f"Provider message: {provider_message}"
+            )
+        return "Email provider returned an SMTP error while sending the message."
+
+    if isinstance(exc, TimeoutError):
+        return "Email provider timed out while sending the message. Try again."
+
+    if isinstance(exc, OSError):
+        return "Unable to reach the email provider right now. Check the SMTP host, port, and network access."
+
+    return (
+        "Unable to send verification email right now. "
+        "Check your email provider settings and sender setup, then try again."
+    )
+
+
 def _send_with_smtp(recipient_email: str, recipient_name: str, code: str) -> None:
     smtp_host = _resolve_smtp_host()
     if not smtp_host:
@@ -187,9 +242,7 @@ def _send_with_smtp(recipient_email: str, recipient_name: str, code: str) -> Non
             raise EmailVerificationError("Unable to send verification email right now.")
     except (smtplib.SMTPException, OSError, TimeoutError, ValueError) as exc:
         logger.exception("SMTP email send failed for %s", recipient_email)
-        raise EmailVerificationError(
-            "Unable to send verification email right now. Check your email provider settings and sender setup, then try again."
-        ) from exc
+        raise EmailVerificationError(_build_smtp_error_message(exc)) from exc
 
 
 def send_email_verification_code(*, recipient_email: str, recipient_name: str, code: str) -> None:
@@ -203,7 +256,7 @@ def send_email_verification_code(*, recipient_email: str, recipient_name: str, c
         _send_with_resend(recipient_email, recipient_name, code)
         return
 
-    if provider in {"smtp", "gmail", "brevo"}:
+    if settings.EMAIL_HOST or provider in {"smtp", "gmail", "brevo"}:
         _send_with_smtp(recipient_email, recipient_name, code)
         return
 
@@ -307,7 +360,7 @@ def send_due_date_notification_email(
             logger.warning("Due date email failed for %s: %s", recipient_email, exc)
         return
 
-    if provider in {"smtp", "gmail", "brevo"}:
+    if settings.EMAIL_HOST or provider in {"smtp", "gmail", "brevo"}:
         smtp_host = _resolve_smtp_host()
         if not smtp_host or not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
             logger.warning("SMTP not configured — skipping due date email to %s", recipient_email)
