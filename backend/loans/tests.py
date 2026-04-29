@@ -676,6 +676,28 @@ class MeEndpointTests(APITestCase):
 
 class EmailVerificationProviderTests(SimpleTestCase):
     @override_settings(
+        EMAIL_VERIFICATION_PROVIDER="brevo",
+        EMAIL_HOST="smtp-relay.brevo.com",
+        EMAIL_PORT=587,
+        EMAIL_HOST_USER="sender@example.com",
+        EMAIL_HOST_PASSWORD="smtp-key",
+        DEFAULT_FROM_EMAIL="sender@example.com",
+        EMAIL_USE_TLS=True,
+        EMAIL_USE_SSL=False,
+        EMAIL_TIMEOUT=15,
+        EMAIL_VERIFICATION_SUBJECT="Your verification code",
+    )
+    @patch("loans.email_verification.EmailMultiAlternatives.send", return_value=1)
+    def test_send_email_verification_code_with_brevo_provider(self, mock_send):
+        send_email_verification_code(
+            recipient_email="borrower@example.com",
+            recipient_name="Borrower",
+            code="123456",
+        )
+
+        mock_send.assert_called_once_with(fail_silently=False)
+
+    @override_settings(
         EMAIL_VERIFICATION_PROVIDER="gmail",
         EMAIL_HOST="smtp.gmail.com",
         EMAIL_PORT=587,

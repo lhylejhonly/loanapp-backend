@@ -22,6 +22,28 @@ AUTO_MIGRATE_COMMANDS = {
 }
 
 
+def _maybe_apply_runserver_bind_override() -> None:
+    command = sys.argv[1] if len(sys.argv) > 1 else ""
+    if command != "runserver":
+        return
+
+    has_explicit_address = any(not arg.startswith("-") for arg in sys.argv[2:])
+    if has_explicit_address:
+        return
+
+    configured_bind = os.getenv("DJANGO_RUNSERVER_BIND", "").strip()
+    if configured_bind:
+        sys.argv.append(configured_bind)
+
+
+def _is_runserver_autoreload_child() -> bool:
+    return (
+        len(sys.argv) > 1
+        and sys.argv[1] == "runserver"
+        and os.getenv("RUN_MAIN") == "true"
+    )
+
+
 def _read_env_file(env_path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     if not env_path.exists():
@@ -56,6 +78,8 @@ def _port_is_open(host: str, port: str) -> bool:
 def _maybe_start_local_postgres() -> None:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command not in LOCAL_DB_COMMANDS or os.name != "nt":
+        return
+    if _is_runserver_autoreload_child():
         return
 
     base_dir = Path(__file__).resolve().parent
@@ -101,6 +125,8 @@ def _maybe_apply_local_migrations() -> None:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command not in AUTO_MIGRATE_COMMANDS or os.name != "nt":
         return
+    if _is_runserver_autoreload_child():
+        return
     if any(flag in sys.argv for flag in {"--help", "-h"}):
         return
     if os.getenv("DJANGO_SKIP_AUTO_MIGRATE") == "1":
@@ -136,6 +162,7 @@ def _maybe_apply_local_migrations() -> None:
 
 def main():
     """Run administrative tasks."""
+    _maybe_apply_runserver_bind_override()
     _maybe_start_local_postgres()
     _maybe_apply_local_migrations()
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')

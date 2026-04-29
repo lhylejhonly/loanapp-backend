@@ -137,6 +137,9 @@ def _resolve_smtp_host() -> str:
     if settings.EMAIL_VERIFICATION_PROVIDER == "gmail":
         return "smtp.gmail.com"
 
+    if settings.EMAIL_VERIFICATION_PROVIDER == "brevo":
+        return "smtp-relay.brevo.com"
+
     return ""
 
 
@@ -185,7 +188,7 @@ def _send_with_smtp(recipient_email: str, recipient_name: str, code: str) -> Non
     except (smtplib.SMTPException, OSError, TimeoutError, ValueError) as exc:
         logger.exception("SMTP email send failed for %s", recipient_email)
         raise EmailVerificationError(
-            "Unable to send verification email right now. Check your SMTP credentials and try again."
+            "Unable to send verification email right now. Check your email provider settings and sender setup, then try again."
         ) from exc
 
 
@@ -200,7 +203,7 @@ def send_email_verification_code(*, recipient_email: str, recipient_name: str, c
         _send_with_resend(recipient_email, recipient_name, code)
         return
 
-    if provider in {"smtp", "gmail"}:
+    if provider in {"smtp", "gmail", "brevo"}:
         _send_with_smtp(recipient_email, recipient_name, code)
         return
 
@@ -304,7 +307,7 @@ def send_due_date_notification_email(
             logger.warning("Due date email failed for %s: %s", recipient_email, exc)
         return
 
-    if provider in {"smtp", "gmail"}:
+    if provider in {"smtp", "gmail", "brevo"}:
         smtp_host = _resolve_smtp_host()
         if not smtp_host or not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
             logger.warning("SMTP not configured — skipping due date email to %s", recipient_email)

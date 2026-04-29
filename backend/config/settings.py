@@ -1,4 +1,7 @@
+import ipaddress
 import os
+import socket
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -25,6 +28,38 @@ def env_list(name: str, default: str = "") -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
+def is_runserver_command() -> bool:
+    return len(sys.argv) > 1 and sys.argv[1] == "runserver"
+
+
+def append_unique(items: list[str], value: str) -> None:
+    if value and value not in items:
+        items.append(value)
+
+
+def get_local_private_ipv4_addresses() -> list[str]:
+    addresses: set[str] = set()
+
+    try:
+        for _, _, _, _, sockaddr in socket.getaddrinfo(
+            socket.gethostname(),
+            None,
+            socket.AF_INET,
+        ):
+            address = sockaddr[0]
+            try:
+                parsed = ipaddress.ip_address(address)
+            except ValueError:
+                continue
+
+            if parsed.is_private and not parsed.is_loopback:
+                addresses.add(address)
+    except OSError:
+        return []
+
+    return sorted(addresses)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
@@ -33,11 +68,22 @@ if DJANGO_ENV not in {"development", "staging", "production"}:
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-in-production")
 DEBUG = env_bool("DJANGO_DEBUG", DJANGO_ENV == "development")
+ALLOW_INSECURE_LOCALHOST = env_bool(
+    "DJANGO_ALLOW_INSECURE_LOCALHOST",
+    is_runserver_command(),
+)
+ENABLE_HTTPS_SECURITY = not DEBUG and not ALLOW_INSECURE_LOCALHOST
+LOCAL_PRIVATE_IPV4_ADDRESSES = get_local_private_ipv4_addresses() if ALLOW_INSECURE_LOCALHOST else []
 allowed_hosts_default = "*" if DEBUG else ""
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", allowed_hosts_default)
 render_external_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
 if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_external_hostname)
+if ALLOW_INSECURE_LOCALHOST:
+    append_unique(ALLOWED_HOSTS, "127.0.0.1")
+    append_unique(ALLOWED_HOSTS, "localhost")
+    for address in LOCAL_PRIVATE_IPV4_ADDRESSES:
+        append_unique(ALLOWED_HOSTS, address)
 
 
 # Application definition
@@ -214,14 +260,21 @@ if not DEBUG:
         raise ImproperlyConfigured("Set DJANGO_ALLOWED_HOSTS to explicit hostnames for production.")
     if all(host in {"127.0.0.1", "localhost"} for host in ALLOWED_HOSTS):
         raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS cannot be local-only when DJANGO_DEBUG=False.")
+
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", ENABLE_HTTPS_SECURITY)
+SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", ENABLE_HTTPS_SECURITY)
+CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", ENABLE_HTTPS_SECURITY)
+USE_X_FORWARDED_HOST = env_bool("DJANGO_USE_X_FORWARDED_HOST", ENABLE_HTTPS_SECURITY)
+
+if ENABLE_HTTPS_SECURITY:
     SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", True)
     SECURE_HSTS_PRELOAD = env_bool("DJANGO_SECURE_HSTS_PRELOAD", True)
-    SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    USE_X_FORWARDED_HOST = env_bool("DJANGO_USE_X_FORWARDED_HOST", True)
+else:
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = os.getenv("DJANGO_SESSION_COOKIE_SAMESITE", "Lax").strip() or "Lax"
@@ -245,6 +298,11 @@ CORS_ALLOWED_ORIGINS = env_list(
     "DJANGO_CORS_ALLOWED_ORIGINS",
     cors_allowed_origins_default,
 )
+if ALLOW_INSECURE_LOCALHOST:
+    for address in LOCAL_PRIVATE_IPV4_ADDRESSES:
+        append_unique(CORS_ALLOWED_ORIGINS, f"http://{address}:19006")
+        append_unique(CORS_ALLOWED_ORIGINS, f"http://{address}:8081")
+        append_unique(CORS_ALLOWED_ORIGINS, f"http://{address}:8000")
 CORS_ALLOW_CREDENTIALS = True
 
 csrf_trusted_origins_default = "http://127.0.0.1:8000,http://localhost:8000,http://172.20.10.2:8000" if DEBUG else ""
@@ -252,6 +310,9 @@ CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
     csrf_trusted_origins_default,
 )
+if ALLOW_INSECURE_LOCALHOST:
+    for address in LOCAL_PRIVATE_IPV4_ADDRESSES:
+        append_unique(CSRF_TRUSTED_ORIGINS, f"http://{address}:8000")
 
 
 # Default primary key field type

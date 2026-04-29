@@ -104,6 +104,15 @@ To enable real email verification codes, set in `backend/.env`:
   - `EMAIL_USE_TLS=True`
   - `DEFAULT_FROM_EMAIL=<your_sender_email>`
 
+- Brevo SMTP:
+  - `EMAIL_VERIFICATION_PROVIDER=brevo`
+  - `EMAIL_HOST=smtp-relay.brevo.com`
+  - `EMAIL_PORT=587`
+  - `EMAIL_HOST_USER=<your_brevo_smtp_login>`
+  - `EMAIL_HOST_PASSWORD=<your_brevo_smtp_key>`
+  - `EMAIL_USE_TLS=True`
+  - `DEFAULT_FROM_EMAIL=<your_verified_sender_email>`
+
 - `EMAIL_VERIFICATION_PROVIDER=resend`
 - `EMAIL_VERIFICATION_CODE_LENGTH=6`
 - `EMAIL_VERIFICATION_TTL_MINUTES=10`
