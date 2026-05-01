@@ -1,6 +1,7 @@
 from calendar import monthrange
 from datetime import date, timedelta
 import smtplib
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.test import SimpleTestCase, override_settings
@@ -206,6 +207,7 @@ class RegistrationTests(APITestCase):
 
 class EmailVerificationTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.user = User.objects.create_user(
             username="verifyuser",
             email="verify@example.com",
@@ -377,9 +379,24 @@ class EmailVerificationTests(APITestCase):
         self.assertEqual(resend_response.data["code"], "verification_locked")
         mock_send_email_verification_code.assert_not_called()
 
+    @patch("loans.views.send_email_verification_code", side_effect=RuntimeError("smtp crashed"))
+    def test_send_email_verification_code_handles_unexpected_send_error(self, _mock_send_email_verification_code):
+        response = self.client.post(
+            reverse("send-verification-code"),
+            {"email": self.user.email},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data["code"], "verification_send_failed")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email_verification_code, "")
+        self.assertEqual(self.user.email_verification_send_count, 0)
+
 
 class PasswordResetTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.user = User.objects.create_user(
             username="resetuser",
             email="reset.user@example.com",
@@ -449,6 +466,18 @@ class PasswordResetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Password must be at least 8 characters", str(response.data))
         mock_send_email_verification_code.assert_called_once()
+
+    @patch("loans.views.send_email_verification_code", side_effect=RuntimeError("smtp crashed"))
+    def test_forgot_password_handles_unexpected_send_error(self, _mock_send_email_verification_code):
+        response = self.client.post(
+            reverse("forgot-password"),
+            {"email": self.user.email},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data["detail"], "Unable to send reset code right now.")
+        self.assertFalse(PasswordResetToken.objects.filter(user=self.user, used=False).exists())
 
 
 class BorrowerSelfServiceTests(APITestCase):

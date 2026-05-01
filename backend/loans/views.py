@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
+import logging
 import math
 import secrets
 
@@ -66,6 +67,8 @@ from .email_verification import (
     generate_verification_code,
     send_email_verification_code,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def create_notification(user, title, message, notification_type=Notification.Type.SYSTEM):
@@ -298,6 +301,13 @@ class SendEmailVerificationCodeView(APIView):
         validated = serializer.validated_data
 
         now = timezone.now()
+        cooldown_seconds = max(int(settings.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS), 1)
+        max_sends_per_hour = max(int(settings.EMAIL_VERIFICATION_MAX_SENDS_PER_HOUR), 1)
+        user_id: int | None = None
+        recipient_email = ""
+        recipient_name = ""
+        code = ""
+        expires_at = now
 
         with transaction.atomic():
             user = User.objects.select_for_update().filter(email__iexact=validated["email"]).first()
@@ -334,7 +344,6 @@ class SendEmailVerificationCodeView(APIView):
                 )
 
             last_sent_at = user.email_verification_last_sent_at
-            cooldown_seconds = max(int(settings.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS), 1)
             if last_sent_at:
                 available_at = last_sent_at + timedelta(seconds=cooldown_seconds)
                 if available_at > now:
@@ -344,7 +353,6 @@ class SendEmailVerificationCodeView(APIView):
                         "verification_send_cooldown",
                     )
 
-            max_sends_per_hour = max(int(settings.EMAIL_VERIFICATION_MAX_SENDS_PER_HOUR), 1)
             window_started_at = user.email_verification_send_window_started_at or now
             if user.email_verification_send_count >= max_sends_per_hour:
                 retry_after_seconds = _seconds_until(window_started_at + timedelta(hours=1), now)
@@ -354,20 +362,56 @@ class SendEmailVerificationCodeView(APIView):
                     "verification_send_limit_reached",
                 )
 
+            user_id = user.id
+            recipient_email = user.email
+            recipient_name = user.name
             code = generate_verification_code()
             expires_at = now + timedelta(minutes=settings.EMAIL_VERIFICATION_TTL_MINUTES)
 
-            try:
-                send_email_verification_code(
-                    recipient_email=user.email,
-                    recipient_name=user.name,
-                    code=code,
-                )
-            except EmailVerificationError as exc:
+        try:
+            send_email_verification_code(
+                recipient_email=recipient_email,
+                recipient_name=recipient_name,
+                code=code,
+            )
+        except EmailVerificationError as exc:
+            return Response(
+                {"detail": str(exc), "code": "verification_send_failed"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except Exception:
+            logger.exception("Unexpected verification email failure for %s", recipient_email)
+            return Response(
+                {
+                    "detail": "Unable to send verification email right now.",
+                    "code": "verification_send_failed",
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        with transaction.atomic():
+            user = User.objects.select_for_update().filter(pk=user_id).first()
+            if not user:
                 return Response(
-                    {"detail": str(exc), "code": "verification_send_failed"},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    {
+                        "detail": "No account found for this email.",
+                        "code": "verification_email_not_found",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
+
+            if user.email_verified:
+                return Response(
+                    {
+                        "detail": "Email already verified.",
+                        "code": "verification_already_verified",
+                        "verified": True,
+                    }
+                )
+
+            update_fields = []
+            update_fields.extend(_clear_verification_lock_if_needed(user, now))
+            update_fields.extend(_reset_send_window_if_needed(user, now))
 
             user.email_verified = False
             user.email_verified_at = None
@@ -378,17 +422,22 @@ class SendEmailVerificationCodeView(APIView):
             user.email_verification_attempt_count = 0
             user.email_verification_locked_until = None
             user.save(
-                update_fields=[
-                    "email_verified",
-                    "email_verified_at",
-                    "email_verification_code",
-                    "email_verification_expires_at",
-                    "email_verification_last_sent_at",
-                    "email_verification_send_window_started_at",
-                    "email_verification_send_count",
-                    "email_verification_attempt_count",
-                    "email_verification_locked_until",
-                ]
+                update_fields=list(
+                    dict.fromkeys(
+                        [
+                            "email_verified",
+                            "email_verified_at",
+                            "email_verification_code",
+                            "email_verification_expires_at",
+                            "email_verification_last_sent_at",
+                            "email_verification_send_window_started_at",
+                            "email_verification_send_count",
+                            "email_verification_attempt_count",
+                            "email_verification_locked_until",
+                            *update_fields,
+                        ]
+                    )
+                )
             )
 
         return Response(
@@ -1447,6 +1496,10 @@ class ForgotPasswordView(APIView):
             return Response({"detail": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         now = timezone.now()
+        token_id: int | None = None
+        token_value = ""
+        recipient_email = ""
+        recipient_name = ""
 
         try:
             with transaction.atomic():
@@ -1457,15 +1510,32 @@ class ForgotPasswordView(APIView):
                 token_value = generate_password_reset_code()
                 expires_at = now + timedelta(hours=1)
                 PasswordResetToken.objects.filter(user=user, used=False).update(used=True)
-                PasswordResetToken.objects.create(user=user, token=token_value, expires_at=expires_at)
-
-                send_email_verification_code(
-                    recipient_email=user.email,
-                    recipient_name=user.name,
-                    code=token_value,
+                reset_token = PasswordResetToken.objects.create(
+                    user=user,
+                    token=token_value,
+                    expires_at=expires_at,
                 )
+                token_id = reset_token.id
+                recipient_email = user.email
+                recipient_name = user.name
+
+            send_email_verification_code(
+                recipient_email=recipient_email,
+                recipient_name=recipient_name,
+                code=token_value,
+            )
         except EmailVerificationError as exc:
+            if token_id is not None:
+                PasswordResetToken.objects.filter(pk=token_id, used=False).update(used=True)
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except Exception:
+            logger.exception("Unexpected forgot-password email failure for %s", email)
+            if token_id is not None:
+                PasswordResetToken.objects.filter(pk=token_id, used=False).update(used=True)
+            return Response(
+                {"detail": "Unable to send reset code right now."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         return Response({"detail": "If that email exists, a reset code has been sent."})
 
