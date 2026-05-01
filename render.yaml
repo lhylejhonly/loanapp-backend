@@ -30,7 +30,7 @@ services:
       - key: EMAIL_HOST
         value: smtp-relay.brevo.com
       - key: EMAIL_PORT
-        value: "587"
+        value: "2525"
       - key: EMAIL_HOST_USER
         value: a915b0001@smtp-brevo.com
       - key: EMAIL_HOST_PASSWORD
@@ -41,6 +41,8 @@ services:
         value: "False"
       - key: DEFAULT_FROM_EMAIL
         value: "loan app <lhylejhonly71@gmail.com>"
+      - key: EMAIL_TIMEOUT
+        value: "30"
       - key: DISBURSEMENT_PROVIDER
         value: manual
 

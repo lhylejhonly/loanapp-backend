@@ -721,6 +721,36 @@ class EmailVerificationProviderTests(SimpleTestCase):
         mock_send.assert_called_once_with(fail_silently=False)
 
     @override_settings(
+        EMAIL_VERIFICATION_PROVIDER="brevo",
+        EMAIL_HOST="smtp-relay.brevo.com",
+        EMAIL_PORT=587,
+        EMAIL_HOST_USER="sender@example.com",
+        EMAIL_HOST_PASSWORD="smtp-key",
+        DEFAULT_FROM_EMAIL="sender@example.com",
+        EMAIL_USE_TLS=True,
+        EMAIL_USE_SSL=False,
+        EMAIL_TIMEOUT=15,
+        EMAIL_VERIFICATION_SUBJECT="Your verification code",
+    )
+    @patch("loans.email_verification.get_connection")
+    @patch(
+        "loans.email_verification.EmailMultiAlternatives.send",
+        side_effect=[TimeoutError("blocked"), TimeoutError("blocked"), 1],
+    )
+    def test_send_email_verification_code_falls_back_to_brevo_port_2525(self, _mock_send, mock_get_connection):
+        send_email_verification_code(
+            recipient_email="borrower@example.com",
+            recipient_name="Borrower",
+            code="123456",
+        )
+
+        self.assertEqual(mock_get_connection.call_count, 3)
+        self.assertEqual(mock_get_connection.call_args_list[0].kwargs["port"], 587)
+        self.assertEqual(mock_get_connection.call_args_list[1].kwargs["port"], 587)
+        self.assertEqual(mock_get_connection.call_args_list[2].kwargs["port"], 2525)
+        self.assertEqual(mock_get_connection.call_args_list[0].kwargs["timeout"], 30)
+
+    @override_settings(
         EMAIL_VERIFICATION_PROVIDER="gmail",
         EMAIL_HOST="smtp.gmail.com",
         EMAIL_PORT=587,

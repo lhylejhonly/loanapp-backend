@@ -143,6 +143,42 @@ def _resolve_smtp_host() -> str:
     return ""
 
 
+def _smtp_connection_candidates(smtp_host: str) -> list[dict[str, object]]:
+    candidates = [
+        {
+            "host": smtp_host,
+            "port": settings.EMAIL_PORT,
+            "use_tls": settings.EMAIL_USE_TLS,
+            "use_ssl": settings.EMAIL_USE_SSL,
+        }
+    ]
+
+    if settings.EMAIL_VERIFICATION_PROVIDER == "brevo" and int(settings.EMAIL_PORT) != 2525:
+        candidates.append(
+            {
+                "host": smtp_host,
+                "port": 2525,
+                "use_tls": True,
+                "use_ssl": False,
+            }
+        )
+
+    return candidates
+
+
+def _smtp_attempts_per_candidate() -> int:
+    if settings.EMAIL_VERIFICATION_PROVIDER == "brevo":
+        return 2
+    return 1
+
+
+def _smtp_timeout_seconds() -> int:
+    configured_timeout = int(settings.EMAIL_TIMEOUT)
+    if settings.EMAIL_VERIFICATION_PROVIDER == "brevo":
+        return max(configured_timeout, 30)
+    return configured_timeout
+
+
 def _decode_smtp_response(exc: BaseException) -> str:
     response = getattr(exc, "smtp_error", "")
     if isinstance(response, bytes):
@@ -187,18 +223,35 @@ def _build_smtp_error_message(exc: BaseException) -> str:
         return "Email provider returned an SMTP error while sending the message."
 
     if isinstance(exc, TimeoutError):
+        if settings.EMAIL_VERIFICATION_PROVIDER == "brevo" and int(settings.EMAIL_PORT) == 587:
+            return (
+                "Email provider timed out while sending the message. "
+                "If this backend runs on Render free, switch Brevo to port 2525."
+            )
         return "Email provider timed out while sending the message. Try again."
 
     if isinstance(exc, OSError):
+        if settings.EMAIL_VERIFICATION_PROVIDER == "brevo" and int(settings.EMAIL_PORT) == 587:
+            return (
+                "Unable to reach the email provider right now. "
+                "If this backend runs on Render free, switch Brevo to port 2525."
+            )
         return "Unable to reach the email provider right now. Check the SMTP host, port, and network access."
 
     return (
-        "Unable to send verification email right now. "
+        "Unable to send email right now. "
         "Check your email provider settings and sender setup, then try again."
     )
 
 
-def _send_with_smtp(recipient_email: str, recipient_name: str, code: str) -> None:
+def _send_smtp_email(
+    *,
+    recipient_email: str,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    failure_message: str,
+) -> None:
     smtp_host = _resolve_smtp_host()
     if not smtp_host:
         raise EmailVerificationError(
@@ -216,33 +269,105 @@ def _send_with_smtp(recipient_email: str, recipient_name: str, code: str) -> Non
             "Email sending is not configured. Add DEFAULT_FROM_EMAIL or EMAIL_HOST_USER in backend/.env."
         )
 
-    connection = get_connection(
-        backend="django.core.mail.backends.smtp.EmailBackend",
-        host=smtp_host,
-        port=settings.EMAIL_PORT,
-        username=settings.EMAIL_HOST_USER,
-        password=settings.EMAIL_HOST_PASSWORD,
-        use_tls=settings.EMAIL_USE_TLS,
-        use_ssl=settings.EMAIL_USE_SSL,
-        timeout=settings.EMAIL_TIMEOUT,
-    )
+    connection_candidates = _smtp_connection_candidates(smtp_host)
+    primary_port = int(connection_candidates[0]["port"])
+    last_retryable_exc: BaseException | None = None
+    attempts_per_candidate = _smtp_attempts_per_candidate()
+    timeout_seconds = _smtp_timeout_seconds()
 
-    message = EmailMultiAlternatives(
+    for connection_candidate in connection_candidates:
+        port = int(connection_candidate["port"])
+        use_tls = bool(connection_candidate["use_tls"])
+        use_ssl = bool(connection_candidate["use_ssl"])
+        for attempt_number in range(1, attempts_per_candidate + 1):
+            connection = get_connection(
+                backend="django.core.mail.backends.smtp.EmailBackend",
+                host=str(connection_candidate["host"]),
+                port=port,
+                username=settings.EMAIL_HOST_USER,
+                password=settings.EMAIL_HOST_PASSWORD,
+                use_tls=use_tls,
+                use_ssl=use_ssl,
+                timeout=timeout_seconds,
+            )
+
+            message = EmailMultiAlternatives(
+                subject=subject,
+                body=text_body,
+                from_email=from_email,
+                to=[recipient_email],
+                connection=connection,
+            )
+            message.attach_alternative(html_body, "text/html")
+
+            try:
+                sent_count = message.send(fail_silently=False)
+                if sent_count != 1:
+                    raise EmailVerificationError(failure_message)
+
+                if port != primary_port:
+                    logger.warning(
+                        "SMTP email send for %s recovered on fallback port %s after primary port %s failed.",
+                        recipient_email,
+                        port,
+                        primary_port,
+                    )
+                return
+            except smtplib.SMTPException as exc:
+                if isinstance(exc, (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected)):
+                    last_retryable_exc = exc
+                    logger.warning(
+                        "SMTP connection attempt %s/%s failed for %s on %s:%s (TLS=%s, SSL=%s): %s",
+                        attempt_number,
+                        attempts_per_candidate,
+                        recipient_email,
+                        smtp_host,
+                        port,
+                        use_tls,
+                        use_ssl,
+                        exc,
+                    )
+                    continue
+
+                logger.exception("SMTP email send failed for %s", recipient_email)
+                raise EmailVerificationError(_build_smtp_error_message(exc)) from exc
+            except (OSError, TimeoutError) as exc:
+                last_retryable_exc = exc
+                logger.warning(
+                    "SMTP connection attempt %s/%s failed for %s on %s:%s (TLS=%s, SSL=%s): %s",
+                    attempt_number,
+                    attempts_per_candidate,
+                    recipient_email,
+                    smtp_host,
+                    port,
+                    use_tls,
+                    use_ssl,
+                    exc,
+                )
+                continue
+            except ValueError as exc:
+                logger.exception("SMTP email send failed for %s", recipient_email)
+                raise EmailVerificationError(_build_smtp_error_message(exc)) from exc
+
+    if last_retryable_exc is not None:
+        logger.error(
+            "SMTP email send failed for %s after trying ports %s",
+            recipient_email,
+            ", ".join(str(int(candidate["port"])) for candidate in connection_candidates),
+        )
+        raise EmailVerificationError(_build_smtp_error_message(last_retryable_exc)) from last_retryable_exc
+
+    raise EmailVerificationError(failure_message)
+
+
+def _send_with_smtp(recipient_email: str, recipient_name: str, code: str) -> None:
+    _send_smtp_email(
+        recipient_email=recipient_email,
         subject=_build_email_subject(),
-        body=_build_email_text(recipient_name, code),
-        from_email=from_email,
-        to=[recipient_email],
-        connection=connection,
+        text_body=_build_email_text(recipient_name, code),
+        html_body=_build_email_html(recipient_name, code),
+        failure_message="Unable to send verification email right now.",
     )
-    message.attach_alternative(_build_email_html(recipient_name, code), "text/html")
-
-    try:
-        sent_count = message.send(fail_silently=False)
-        if sent_count != 1:
-            raise EmailVerificationError("Unable to send verification email right now.")
-    except (smtplib.SMTPException, OSError, TimeoutError, ValueError) as exc:
-        logger.exception("SMTP email send failed for %s", recipient_email)
-        raise EmailVerificationError(_build_smtp_error_message(exc)) from exc
 
 
 def send_email_verification_code(*, recipient_email: str, recipient_name: str, code: str) -> None:
